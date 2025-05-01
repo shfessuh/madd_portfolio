@@ -57,6 +57,8 @@ const THERMAL_DISTANCE = 5;
 const PROXIMITY_RADIUS  = THERMAL_DISTANCE * 4;
 const FADE_START        = 35;
 const FADE_END          = 45;
+const AUDIO_MIN_VOLUME = 0.01;
+const AUDIO_MAX_VOLUME = 0.09;
 
 function reverse(str) {
   return str.split('').reverse().join('');
@@ -115,7 +117,7 @@ function setup() {
   listener = new THREE.AudioListener();
   camera.add(listener);
   bgSound  = new THREE.Audio(listener);
-  new THREE.AudioLoader().load('dream_state/media/live_audio.mp3', buf => {
+  new THREE.AudioLoader().load('videos/sound.mp4', buf => {
     bgSound.setBuffer(buf);
     bgSound.setLoop(true);
     bgSound.setVolume(0);
@@ -205,7 +207,6 @@ function setup() {
         case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
         case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
         default:            mat.color.set(0x140f10);
-        //292a2e
       }
       node.material = mat;
       node.material.needsUpdate = true;
@@ -297,8 +298,8 @@ function onPointerDown(evt) {
     flyTarget = m;
     const fwd = new THREE.Vector3().copy(m.getWorldDirection(new THREE.Vector3())).negate();
     flyToPos = m.getWorldPosition(new THREE.Vector3())
-               .add(fwd.multiplyScalar(14))
-               .add(new THREE.Vector3(0,1.6,0));
+               .add(fwd.multiplyScalar(16))
+               .add(new THREE.Vector3(0,4,1));
 
     isZooming  = true;
     isZoomedIn = false;
@@ -343,6 +344,7 @@ function animate() {
     camera.position.add(delta);
     controls.target.add(delta);
   }
+
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
   cube.rotation.z += 0.01;
@@ -355,18 +357,32 @@ function animate() {
       isZoomedIn = true;
     }
   }
+
   controls.update();
+
+  // audio volume bounds (ensure these are defined at top-level)
+  // const AUDIO_MIN_VOLUME = 0.1;
+  // const AUDIO_MAX_VOLUME = 0.8;
 
   if (audioUnlocked && audioLoaded && monitors.length) {
     const d = Math.min(...monitors.map(m => camera.position.distanceTo(m.position)));
     if (d < PROXIMITY_RADIUS) {
-      const v = 1 - d / PROXIMITY_RADIUS;
-      bgSound.setVolume(v);
-      if (!bgSound.isPlaying) bgSound.play();
+      // compute raw volume and clamp it
+      const rawV     = 1 - d / PROXIMITY_RADIUS;
+      const clampedV = THREE.MathUtils.clamp(rawV, AUDIO_MIN_VOLUME, AUDIO_MAX_VOLUME);
+      bgSound.setVolume(clampedV);
+
+      // only play if above min; pause if at or below
+      if (clampedV > AUDIO_MIN_VOLUME) {
+        if (!bgSound.isPlaying) bgSound.play();
+      } else if (bgSound.isPlaying) {
+        bgSound.pause();
+      }
     } else if (bgSound.isPlaying) {
       bgSound.pause();
     }
   }
+
   const f = THREE.MathUtils.clamp(
     (camera.position.z - FADE_START) / (FADE_END - FADE_START),
     0, 1
@@ -386,7 +402,7 @@ function animate() {
        .addScaledVector(up,    o.y);
       m.quaternion.copy(camera.quaternion);
       m.rotateY(Math.PI);
-      m.scale.set(15, 15, 15);
+      m.scale.set(18, 18, 18);
       m.visible = true;
     });
     dreamInjected = true;
@@ -409,12 +425,10 @@ function animate() {
       labels.splice(i, 1);
       continue;
     }
-
-    const currDist    = camera.position.distanceTo(L.obj.position);
-    const scaleFactor = L.spawnScale * (L.spawnDist / currDist);
   }
 
   if (isSpawning && labels.length === 0) isSpawning = false;
+
   const nowMs = performance.now();
   if (!rotationEnabled && nowMs > spawnTime + 1000) {
     rotationEnabled = true;
@@ -422,6 +436,7 @@ function animate() {
   if (rotationEnabled) {
     haloGroup.rotation.y -= dt * 0.5;
   }
+
   const inv = haloGroup.quaternion.clone().invert();
   haloGroup.children.forEach(child => {
     child.quaternion.copy(inv).multiply(camera.quaternion);
@@ -434,9 +449,11 @@ function animate() {
       el.style.transform = `matrix3d(${vals.join(",")})`;
     }
   });
+
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
+
 
 // function spawnWord(faceIdx)
 function spawnWord(faceIdx) {
