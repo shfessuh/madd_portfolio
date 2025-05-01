@@ -29,10 +29,28 @@ let isZooming = false;
 let isZoomedIn = false;
 
 const manualOffsets = [
-  { x: -50, y: -20 }, { x: -25, y: -20 }, { x:   0, y: -20 }, { x:  25, y: -20 }, { x:  50, y: -20 },
-  { x: -50, y:   0 }, { x: -25, y:   0 }, { x:   0, y:   0 }, { x:  25, y:   0 }, { x:  50, y:   0 },
-  { x: -50, y:  20 }, { x: -25, y:  20 }, { x:   0, y:  20 }, { x:  25, y:  20 }, { x:  50, y:  20 }
+  // Top Line
+  { x: -50, y: 25, z: 0 },
+  { x: -25, y: 30, z: -10 },
+  { x:   0, y: 25, z: -5 },
+  { x:  25, y: 30, z: 10 },
+  { x:  50, y: 25, z: 5 },
+
+  // Middle Line
+  { x: -50, y: 0, z: 10 },
+  { x: -25, y: -5, z: 0 },
+  { x:   0, y: 0, z: -10 },
+  { x:  25, y: -5, z: -5 },
+  { x:  50, y: 0, z: 10 },
+
+  // Bottom Line
+  { x: -50, y: -25, z: -5 },
+  { x: -25, y: -30, z: 5 },
+  { x:   0, y: -25, z: 15 },
+  { x:  25, y: -30, z: 0 },
+  { x:  50, y: -25, z: -10 }
 ];
+
 
 const clock = new THREE.Clock();
 const THERMAL_DISTANCE = 5;
@@ -45,12 +63,12 @@ function reverse(str) {
 }
 
 const faceMessages = [
-  reverse("M Y   S H I E L D.    I T S    A B S E N C E    T I G H T E N S    MY    CHEST;    ITS    WEIGHT    CALMS    ME."),
+  reverse("M Y   S H I E L D.    I T S    A B S E N C E    T I G H T E N S    M Y    C H E S T;    I T S    W E I G H T   C A L M S    M E.  "),
   reverse("I N   C H A O S,   H I S   H Y M N S   Q U I E T   M Y   S P I R I T   A N D   M A K E   M Y   H E A R T   W E E P   W I T H   J O Y  "),
   reverse("S U R R O U N D E D   B Y   G R I E F’ S   A N G E L S,   Y E T   P E A C E   F I N D S   I T S   P L A C E  "),
   reverse("E A C H   B E A D,  A   G E N T L E   E C H O   O F   H E R   W I S D O M,   H E R   L O V E,   F O R E V E R   I N T E R T W I N E D   W I T H   M I N E   "),
   reverse("I N   H I S   H Y M N S,  I   H E A R   H E R   W A R M T H,   A   M E L O D Y   T H A T   S O O T H E S  A N D   C O N N E C T S   M E   T O   H O M E   "),
-  reverse("B O R N   F R O M   P A I N,  L O S S ,   A N D    E N D L E S S   T E A R S,  I  W A N D E R  A S   A N   A S Y L U M   S E E K E R,  H O P I N G   F O R   T H E   D A Y   P E A C E   B R I N G S   M E  H O M E  ")
+  reverse("B O R N   F R O M   P A I N,  L O S S ,   A N D    E N D L E S S   T E A R S,  I   W A N D E R   A S   A N   A S Y L U M   S E E K E R,  H O P I N G   F O R   T H E   D A Y   P E A C E    B R I N G S    M E   H O M E   ")
 ];
 
 
@@ -92,7 +110,7 @@ function setup() {
   controls.dynamicDampingFactor = 0.4;
   controls.zoomSpeed            = 0.5;
   controls.panSpeed             = 1.0;
-  controls.maxDistance          = 80;
+  controls.maxDistance          = 90;
 
   listener = new THREE.AudioListener();
   camera.add(listener);
@@ -171,7 +189,7 @@ function setup() {
     vidTextures.push(vt);
   }
   // monitors
-  new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+  new THREE.GLTFLoader().load('models/CRT_Monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
       const mat = new THREE.MeshBasicMaterial({
@@ -182,11 +200,12 @@ function setup() {
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x4861f0); break;
-        case 'Node-Mesh':   mat.color.set(0x4861f0); break;
-        case 'Node-Mesh_1': mat.color.set(0xa15454); break;
-        case 'Node-Mesh_3': mat.color.set(0x802260); break;
-        default:            mat.color.set(0x801d1d);
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+        case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+        default:            mat.color.set(0x140f10);
+        //292a2e
       }
       node.material = mat;
       node.material.needsUpdate = true;
@@ -326,6 +345,7 @@ function animate() {
   }
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
+  cube.rotation.z += 0.01;
 
   if (flyToPos) {
     camera.position.lerp(flyToPos, 0.1);
@@ -373,7 +393,7 @@ function animate() {
   }
 
   const now     = performance.now() * 0.001;
-  const EXP_DUR = 1.2, FADE_DUR = 50.0;
+  const EXP_DUR = 1.5, FADE_DUR = 35.0;
   for (let i = labels.length - 1; i >= 0; i--) {
     const L   = labels[i];
     const age = now - L.startTime;
