@@ -328,7 +328,6 @@ function onPointerDown(evt) {
   spawnTime            = performance.now();
   setTimeout(() => spawnWord(idx), 600);
 }
-
 // function animate()
 function animate() {
   requestAnimationFrame(animate);
@@ -336,6 +335,7 @@ function animate() {
   const speed = isZoomedIn ? 30 : 10;
   const delta = new THREE.Vector3();
 
+  // camera panning
   if (keyState["ArrowUp"])    delta.y += speed * dt;
   if (keyState["ArrowDown"])  delta.y -= speed * dt;
   if (keyState["ArrowLeft"])  delta.x -= speed * dt;
@@ -345,10 +345,12 @@ function animate() {
     controls.target.add(delta);
   }
 
+  // cube rotation
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
   cube.rotation.z += 0.01;
 
+  // fly‐to logic
   if (flyToPos) {
     camera.position.lerp(flyToPos, 0.1);
     controls.target.lerp(flyTarget.position, 0.1);
@@ -360,19 +362,13 @@ function animate() {
 
   controls.update();
 
-  // audio volume bounds (ensure these are defined at top-level)
-  // const AUDIO_MIN_VOLUME = 0.1;
-  // const AUDIO_MAX_VOLUME = 0.8;
-
+  // audio volume based on distance
   if (audioUnlocked && audioLoaded && monitors.length) {
     const d = Math.min(...monitors.map(m => camera.position.distanceTo(m.position)));
     if (d < PROXIMITY_RADIUS) {
-      // compute raw volume and clamp it
       const rawV     = 1 - d / PROXIMITY_RADIUS;
       const clampedV = THREE.MathUtils.clamp(rawV, AUDIO_MIN_VOLUME, AUDIO_MAX_VOLUME);
       bgSound.setVolume(clampedV);
-
-      // only play if above min; pause if at or below
       if (clampedV > AUDIO_MIN_VOLUME) {
         if (!bgSound.isPlaying) bgSound.play();
       } else if (bgSound.isPlaying) {
@@ -383,6 +379,7 @@ function animate() {
     }
   }
 
+  // background fade
   const f = THREE.MathUtils.clamp(
     (camera.position.z - FADE_START) / (FADE_END - FADE_START),
     0, 1
@@ -390,11 +387,13 @@ function animate() {
   renderer.setClearColor(0x0a0a0a, 0);
   document.getElementById("gradient-bg").style.opacity = f.toFixed(2);
 
+  // inject monitors once zoomed past FADE_START
   if (!dreamInjected && camera.position.z > FADE_START) {
     const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
     const base  = camera.position.clone().addScaledVector(fwd, 12);
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
     monitors.forEach((m, i) => {
       const o = manualOffsets[i] || { x: 0, y: 0 };
       m.position.copy(base)
@@ -408,12 +407,12 @@ function animate() {
     dreamInjected = true;
   }
 
+  // animate spawned words
   const now     = performance.now() * 0.001;
   const EXP_DUR = 1.5, FADE_DUR = 35.0;
   for (let i = labels.length - 1; i >= 0; i--) {
     const L   = labels[i];
     const age = now - L.startTime;
-
     if (age < EXP_DUR) {
       L.obj.position.addScaledVector(L.velocity, dt);
     } else if (age < EXP_DUR + FADE_DUR) {
@@ -429,6 +428,7 @@ function animate() {
 
   if (isSpawning && labels.length === 0) isSpawning = false;
 
+  // enable halo rotation after spawn delay
   const nowMs = performance.now();
   if (!rotationEnabled && nowMs > spawnTime + 1000) {
     rotationEnabled = true;
@@ -437,6 +437,7 @@ function animate() {
     haloGroup.rotation.y -= dt * 0.5;
   }
 
+  // keep CSS3D labels facing camera
   const inv = haloGroup.quaternion.clone().invert();
   haloGroup.children.forEach(child => {
     child.quaternion.copy(inv).multiply(camera.quaternion);
@@ -450,6 +451,15 @@ function animate() {
     }
   });
 
+  // ── NEW: update video textures only when the video has data ──
+  vidTextures.forEach((tex, i) => {
+    const vid = document.getElementById(`v${i + 1}`);
+    if (vid && vid.readyState >= vid.HAVE_CURRENT_DATA) {
+      tex.needsUpdate = true;
+    }
+  });
+
+  // final render
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
