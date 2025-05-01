@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Flashlight overlay -->
+  <div id="overlay"></div>
+
+  <!-- Intro text and button -->
+  <div id="intro-wrapper">
+    <div id="message">
+      <p>My work is a personal exploration shaped into a three-dimensional world using Three.js, built from my lived experience and grounded in the cultural and spiritual values that define me. Each visual and sound was captured from my perspective and placed with care to reflect how I see, remember, and move through the spaces that surround me. This is not just a digital space, but a layered expression of identity, formed through memory, perspective, and intention.</p>
+
+      <p>I invite you to explore the space through motion and attention, guided by what appears both around you in the space and beneath your hands. What reveals itself may shift depending on how you move and what you choose to notice. So, slow down, move with intention, and let the space respond to you.</p>
+
+      <p>While deeply personal, this world is also a quiet invitation to consider what shapes you, what you hold close, and how that might take form if imagined as a space of your own and shared with others.</p>
+    </div>
+
+    <button id="enter-button">Enter</button>
+  </div>
+
+  <!-- Three.js and p5 containers -->
+  <div id="container"></div>
+  <div id="p5-container" style="width:100%; height:100%; visibility:hidden;"></div>
+
+  <!-- Scripts -->
+  <script src="js/splash.js"></script>
+  <script src="js/three.min.js"></script>
+  <script src="js/TrackballControls.js"></script>
+  <script src="js/CSS3DRenderer.js"></script>
+</body>
+</html>

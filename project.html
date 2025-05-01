@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Three.js Cube + CSS3D Halo</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+
+  </style>
+</head>
+<body>
+  <div id="gradient-bg"></div>
+  <div id="nav-buttons">
+    <button id="home-button">Home</button>
+    <button id="restart-button">Restart</button>
+  </div>
+  <div id="container"></div>
+
+  <video id="v1" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream1.mp4"></video>
+  <video id="v2" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream2.mp4"></video>
+  <video id="v3" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream3.mp4"></video>
+  <video id="v4" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream4.mp4"></video>
+  <video id="v5" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream5.mp4"></video>
+  <video id="v6" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream6.mp4"></video>
+  <video id="v7" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream7.mp4"></video>
+  <video id="v8" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream8.mp4"></video>
+  <video id="v9" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream9.mp4"></video>
+  <video id="v10" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  <video id="v11" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  <video id="v12" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  <video id="v13" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  <video id="v14" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  <video id="v15" class="video-hidden" muted loop playsinline preload="auto" src="dream_state/media/dream10.mp4"></video>
+  
+  <script src="js/three.min.js"></script>
+  <script src="js/TrackballControls.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/FlyControls.js"></script>
+  <script src="js/CSS3DRenderer.js"></script>
+  <script src="js/nn.min.js"></script>
+  <script src="js/GLTFLoader.js"></script> 
+  <script src="js/main.js"></script>
+  <script src="js/splash_2.js"></script>
+
+  <script>
+    document.addEventListener('click', function unlockVideos() {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(v => v.play().catch(e => console.warn('Video play error:', e)));
+      document.removeEventListener('click', unlockVideos);
+    }, { once: true });
+
+    document.getElementById('home-button')
+      .addEventListener('click', () => window.location.href = 'index.html');
+    document.getElementById('restart-button')
+      .addEventListener('click', () => window.location.reload());
+  </script>
+</body>
+</html>
