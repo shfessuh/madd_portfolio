@@ -191,7 +191,7 @@ function setup() {
     vidTextures.push(vt);
   }
   // monitors
-  new THREE.GLTFLoader().load('models/CRT_Monitor.glb', gltf => {
+  new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
       const mat = new THREE.MeshBasicMaterial({
