@@ -175,42 +175,37 @@ function setup() {
   scene.add(cube);
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
-  // video for monitors
   // — video for monitors —  
-  // — video for monitors: immediate VideoTexture creation —  
-  const vidTextures = [];
-  const videoReady  = [];  // will hold a boolean per video
-  
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
-    v.muted       = true;
-    v.loop        = true;
-    v.autoplay    = true;
-    v.playsInline = true;
-    v.preload     = 'auto';
-    v.play().catch(() =>
-      document.addEventListener('click', () => v.play(), { once: true })
-    );
-  
-    // create the VideoTexture immediately (even if no frame yet)
-    const vt = new THREE.VideoTexture(v);
-    vt.minFilter = THREE.LinearFilter;
-    vt.magFilter = THREE.LinearFilter;
-    vt.encoding  = THREE.sRGBEncoding;
-    vt.flipY     = false;
-    vidTextures.push(vt);
-  
-    // mark “not yet ready”
-    videoReady.push(false);
-  
-    // once the browser actually has a frame, flip our flag
+    v.crossOrigin = 'anonymous';
+    v.muted        = true;
+    v.loop         = true;
+    v.autoplay     = true;      // allow muted autoplay
+    v.playsInline  = true;
+    v.preload      = 'auto';
+
+    // try to start playback; if blocked, unlock on click
+    v.play().catch(() => {
+      document.addEventListener('click', () => v.play(), { once: true });
+    });
+
+    // only once the video is truly playing…
     v.addEventListener('playing', () => {
-      console.log(`▶ video #${i} is now playing`);
-      videoReady[i-1] = true;
+      console.log(`▶ video #${i} playing—creating texture`);
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = THREE.LinearFilter;
+      vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+
+      vidTextures.push(vt);
+      // if your CRT model is already loaded, stamp out the monitors
+      if (monitorPrototype) createMonitorField();
     }, { once: true });
   }
 
-  // — load CRT model and stamp out monitors immediately —  
+  // — load CRT model and do initial build if any videos are queued —  
   new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
@@ -222,23 +217,24 @@ function setup() {
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
-        case 'Node-Mesh':   mat.color.set(0xa4de31); break; // frame
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
+        case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
         default:            mat.color.set(0x140f10);
       }
       node.material = mat;
       node.material.needsUpdate = true;
     });
-  
-    monitorPrototype = gltf.scene;
-    createMonitorField();  // immediately add all monitors
-  });
-  
-  // keep your resize listener
-  window.addEventListener('resize', resize);
 
+    monitorPrototype = gltf.scene;
+    console.log('CRT model loaded');
+    // if any textures arrived first, build monitors now
+    if (vidTextures.length > 0) createMonitorField();
+  });
+
+  // preserve your resize listener
+  window.addEventListener('resize', resize);
 
   const ui = document.createElement('div');
   ui.style.position = 'absolute';
@@ -286,7 +282,7 @@ function setup() {
 function createMonitorField() {
   monitors.forEach(m=>scene.remove(m)); monitors.length=0;
   vidTextures.forEach((tex,i)=>{
-    const m = monitorPrototype.clone();
+    const m = monitorPrototype.clone(); m.visible=false;
     m.traverse(n=>{
       if(!n.isMesh||n.name!=='Node-Mesh_2') return;
       const g=n.geometry;
@@ -482,16 +478,8 @@ function animate() {
       tex.needsUpdate = true;
     }
   });
-  vidTextures.forEach((tex, i) => {
-    const v = document.getElementById(`v${i+1}`);
-    if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      tex.needsUpdate = true;
-    }
-  });
-  vidTextures.forEach(tex => {
-    if (tex) tex.needsUpdate = true;
-  });
-    // final render
+
+  // final render
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
