@@ -180,33 +180,24 @@ function setup() {
 // — video for monitors: immediate VideoTexture creation —  
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
-    v.crossOrigin = 'anonymous';
-    v.muted        = true;
-    v.loop         = true;
-    v.autoplay     = true;
-    v.playsInline  = true;
-    v.preload      = 'auto';
-    v.src          = `videos/video${i}.mp4`;
-  
-    // kick off playback (muted autoplay)
+    v.muted       = true;
+    v.loop        = true;
+    v.autoplay    = true;
+    v.playsInline = true;
+    v.preload     = 'auto';
     v.play().catch(() => {
       document.addEventListener('click', () => v.play(), { once: true });
     });
   
-    // only once the browser can actually supply frames...
-    v.addEventListener('canplay', () => {
-      console.log(`▶ video #${i} canplay, readyState=${v.readyState}`);
-      const vt = new THREE.VideoTexture(v);
-      vt.minFilter = THREE.LinearFilter;
-      vt.magFilter = THREE.LinearFilter;
-      vt.encoding  = THREE.sRGBEncoding;
-      vt.flipY     = false;
-      vt.autoUpdate = false;  // we’ll update it manually
+    // create the VideoTexture right away
+    const vt = new THREE.VideoTexture(v);
+    vt.minFilter = THREE.LinearFilter;
+    vt.magFilter = THREE.LinearFilter;
+    vt.encoding  = THREE.sRGBEncoding;
+    vt.flipY     = false;
+    // (no need for vt.autoUpdate or canplay listener)
   
-      vidTextures[i - 1] = vt;  // slot i→index i-1
-      // if your CRT model’s already loaded, re-stamp the monitors
-      if (monitorPrototype) createMonitorField();
-    }, { once: true });
+    vidTextures.push(vt);
   }
     
   // — load CRT model and stamp out monitors immediately —  
@@ -481,8 +472,10 @@ function animate() {
       tex.needsUpdate = true;
     }
   });
-
-  // final render
+  vidTextures.forEach(tex => {
+    if (tex) tex.needsUpdate = true;
+  });  
+    // final render
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
