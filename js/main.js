@@ -183,32 +183,41 @@ function setup() {
   // video for monitors
 // video for monitors
 // 1) video‐for‐monitors setup
+// Modify your video loading code to be more robust
 for (let i = 1; i <= 15; i++) {
-  const v = document.getElementById(`v${i}`);
-  if (!v) continue;
-  v.crossOrigin  = 'anonymous';
-  v.muted        = true;
-  v.loop         = true;
-  v.playsInline  = true;
-  v.preload      = 'auto';
-  v.load();
+  const v = document.createElement('video');
+  v.id = `v${i}`;
+  v.crossOrigin = 'anonymous';
+  v.muted = true;
+  v.loop = true;
+  v.playsInline = true;
+  v.preload = 'auto';
+  v.src = `./videos/v${i}.mp4`; // Use explicit paths
+  document.body.appendChild(v); // Make sure they're in DOM
 
   v.addEventListener('loadeddata', () => {
-    v.play().catch(() => {
-      document.addEventListener('click', () => v.play(), { once: true });
+    v.play().catch(e => {
+      console.log(`Video ${i} play failed, waiting for interaction`, e);
+      const playHandler = () => {
+        v.play().then(() => {
+          document.removeEventListener('click', playHandler);
+        });
+      };
+      document.addEventListener('click', playHandler, { once: true });
     });
 
     const vt = new THREE.VideoTexture(v);
     vt.minFilter = vt.magFilter = THREE.LinearFilter;
-    vt.encoding  = THREE.sRGBEncoding;
-    vt.flipY     = false;
+    vt.encoding = THREE.sRGBEncoding;
+    vt.flipY = false;
 
     vidTextures.push(vt);
-    console.log(`→ video texture #${vidTextures.length} ready`);
+    console.log(`Video texture #${i} ready`);
     tryBuildMonitors();
-  }, { once: true });
-}
+  });
 
+  v.load();
+}
 
 // 2) GLTF loader for CRT_monitors
 new THREE.GLTFLoader().load(
@@ -234,10 +243,10 @@ new THREE.GLTFLoader().load(
     });
 
     monitorPrototype = gltf.scene;
+    console.log('Monitor model successfully loaded');
     modelReady = true;
     console.log('GLTF model loaded');
     tryBuildMonitors();
-    createMonitorField(); 
   },
   undefined,
   err => console.error('CRT_monitor.glb failed to load:', err)
