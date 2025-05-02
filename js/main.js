@@ -27,6 +27,7 @@ let rotationEnabled = false,
 let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
+let modelReady = false;
 
 const manualOffsets = [
   // Top Line
@@ -176,22 +177,53 @@ function setup() {
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
   // video for monitors
-  for (let i = 1; i <= 15; i++) {
-    const v = document.getElementById('v' + i);
-    v.muted = v.loop = true;
-    v.playsInline = true;
-    v.preload = 'auto';
-    v.load();
-    v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
-    const vt = new THREE.VideoTexture(v);
-    vt.minFilter = vt.magFilter = THREE.LinearFilter;
-    vt.encoding  = THREE.sRGBEncoding;
-    vt.flipY     = false;
-    vt.needsUpdate = true;
-    vidTextures.push(vt);
+// video for monitors
+for (let i = 1; i <= 15; i++) {
+  const v = document.getElementById(`v${i}`);
+  if (!v) {
+    console.error(`Video element v${i} not found`);
+    continue;
   }
+
+  // 1) Make it CORS-friendly
+  v.crossOrigin = 'anonymous';
+  v.muted       = true;
+  v.loop        = true;
+  v.playsInline = true;
+  v.preload     = 'auto';
+  v.load();
+
+  // 2) Only once enough data is loaded, build the VideoTexture
+  v.addEventListener('loadeddata', () => {
+    // start playback so pixels are available
+    v.play().catch(() => {
+      document.addEventListener('click', () => v.play(), { once: true });
+    });
+
+    const vt = new THREE.VideoTexture(v);
+    vt.minFilter       = THREE.LinearFilter;
+    vt.magFilter       = THREE.LinearFilter;
+    vt.encoding        = THREE.sRGBEncoding;
+    vt.flipY           = false;
+    // vt.needsUpdate    = true; // optional
+
+    vidTextures.push(vt);
+    if (modelReady) {
+      createMonitorField();
+    }
+  }, { once: true });
+}
+
   // monitors
-  new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+// just above this, make sure you’ve declared:
+// let modelReady = false;
+
+new THREE.GLTFLoader().load(
+  'models/CRT_monitor.glb',
+
+  // onLoad
+  gltf => {
+    // 1) Apply your existing material tweaks
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
       const mat = new THREE.MeshBasicMaterial({
@@ -202,18 +234,33 @@ function setup() {
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
         default:            mat.color.set(0x140f10);
       }
       node.material = mat;
       node.material.needsUpdate = true;
     });
+
+    // 2) Stash the prototype and mark ready
     monitorPrototype = gltf.scene;
-    createMonitorField();
-  });
+    modelReady = true;
+
+    // 3) If any video textures are already loaded, build monitors now
+    if (vidTextures.length > 0) {
+      createMonitorField();
+    }
+  },
+
+  // onProgress (you can omit or leave undefined)
+  undefined,
+
+  // onError
+  err => console.error('CRT_monitor.glb failed to load:', err)
+);
+
   window.addEventListener('resize', resize);
 
   const ui = document.createElement('div');
