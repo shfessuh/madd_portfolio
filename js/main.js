@@ -418,7 +418,7 @@ function animate() {
     } else if (age < EXP_DUR + FADE_DUR) {
       const t = (age - EXP_DUR) / FADE_DUR;
       L.obj.position.lerp(L.target, 0.01);
-      L.obj.element.style.opacity = ${1 - t};
+      L.obj.element.style.opacity = `${1 - t}`;
     } else {
       haloGroup.remove(L.obj);
       labels.splice(i, 1);
