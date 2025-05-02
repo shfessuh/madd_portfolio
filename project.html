@@ -5,7 +5,16 @@
   <title>Three.js Cube + CSS3D Halo</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
-
+    /* keep the videos in‐DOM so they decode, but hide them off-screen */
+    .video-hidden {
+      position: absolute;
+      top:    -100px;
+      left:   -100px;
+      width:   10px;
+      height:  10px;
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -16,21 +25,21 @@
   </div>
   <div id="container"></div>
 
-  <video id="v1" class="video-hidden" muted loop playsinline preload="auto" src="videos/video1.mp4"></video>
-  <video id="v2" class="video-hidden" muted loop playsinline preload="auto" src="videos/video2.mp4"></video>
-  <video id="v3" class="video-hidden" muted loop playsinline preload="auto" src="videos/video3.mp4"></video>
-  <video id="v4" class="video-hidden" muted loop playsinline preload="auto" src="videos/video4.mp4"></video>
-  <video id="v5" class="video-hidden" muted loop playsinline preload="auto" src="videos/video5.mp4"></video>
-  <video id="v6" class="video-hidden" muted loop playsinline preload="auto" src="videos/video6.mp4"></video>
-  <video id="v7" class="video-hidden" muted loop playsinline preload="auto" src="videos/video7.mp4"></video>
-  <video id="v8" class="video-hidden" muted loop playsinline preload="auto" src="videos/video8.mp4"></video>
-  <video id="v9" class="video-hidden" muted loop playsinline preload="auto" src="videos/video9.mp4"></video>
-  <video id="v10" class="video-hidden" muted loop playsinline preload="auto" src="videos/video10.mp4"></video>
-  <video id="v11" class="video-hidden" muted loop playsinline preload="auto" src="videos/video11.mp4"></video>
-  <video id="v12" class="video-hidden" muted loop playsinline preload="auto" src="videos/video12.mp4"></video>
-  <video id="v13" class="video-hidden" muted loop playsinline preload="auto" src="videos/video13.mp4"></video>
-  <video id="v14" class="video-hidden" muted loop playsinline preload="auto" src="videos/video14.mp4"></video>
-  <video id="v15" class="video-hidden" muted loop playsinline preload="auto" src="videos/video15.mp4"></video>
+  <video id="v1"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video1.mp4"></video>
+  <video id="v2"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video2.mp4"></video>
+  <video id="v3"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video3.mp4"></video>
+  <video id="v4"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video4.mp4"></video>
+  <video id="v5"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video5.mp4"></video>
+  <video id="v6"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video6.mp4"></video>
+  <video id="v7"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video7.mp4"></video>
+  <video id="v8"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video8.mp4"></video>
+  <video id="v9"  class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video9.mp4"></video>
+  <video id="v10" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video10.mp4"></video>
+  <video id="v11" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video11.mp4"></video>
+  <video id="v12" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video12.mp4"></video>
+  <video id="v13" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video13.mp4"></video>
+  <video id="v14" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video14.mp4"></video>
+  <video id="v15" class="video-hidden" muted autoplay loop playsinline preload="auto" src="videos/video15.mp4"></video>
   
   <script src="js/three.min.js"></script>
   <script src="js/TrackballControls.js"></script>
@@ -43,9 +52,11 @@
   <script src="js/splash_2.js"></script>
 
   <script>
+    // unlock playback on first user interaction
     document.addEventListener('click', function unlockVideos() {
-      const videos = document.querySelectorAll('video');
-      videos.forEach(v => v.play().catch(e => console.warn('Video play error:', e)));
+      document.querySelectorAll('video').forEach(v =>
+        v.play().catch(e => console.warn('Video play error:', e))
+      );
       document.removeEventListener('click', unlockVideos);
     }, { once: true });
 
