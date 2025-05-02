@@ -212,16 +212,12 @@ for (let i = 1; i <= 15; i++) {
 // 2) GLTF loader for CRT_monitors
 new THREE.GLTFLoader().load(
   'models/CRT_monitor.glb',
+
+  // onLoad
   gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
-      const mat = new THREE.MeshBasicMaterial({
-        map        : node.material.map || null,
-        side       : THREE.DoubleSide,
-        toneMapped : false,
-        transparent: node.material.transparent,
-        opacity    : node.material.opacity
-      });
+      // … your existing material setup …
       switch (node.name) {
         case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
@@ -238,22 +234,18 @@ new THREE.GLTFLoader().load(
     console.log('GLTF model loaded');
     tryBuildMonitors();
   },
-  undefined,
-  err => console.error('CRT_monitor.glb failed to load:', err)
-);
 
-    // 3) If any video textures are already loaded, build monitors now
-    if (vidTextures.length > 0) {
-      createMonitorField();
-    }
-  }
-
-  // onProgress (you can omit or leave undefined)
+  // onProgress (optional)
   undefined,
 
   // onError
   err => console.error('CRT_monitor.glb failed to load:', err)
-);
+);  // ← only one close of .load()
+
+// 3) If any video textures arrived before the model, build monitors now
+if (vidTextures.length > 0) {
+  createMonitorField();
+}
 
   window.addEventListener('resize', resize);
 
