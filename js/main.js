@@ -177,36 +177,32 @@ function setup() {
 
   // video for monitors
   // — video for monitors —  
+// — video for monitors: immediate VideoTexture creation —  
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
     v.crossOrigin = 'anonymous';
-    v.muted        = true;
-    v.loop         = true;
-    v.autoplay     = true;      // allow muted autoplay
-    v.playsInline  = true;
-    v.preload      = 'auto';
+    v.muted       = true;
+    v.loop        = true;
+    v.autoplay    = true;      // allow muted autoplay
+    v.playsInline = true;
+    v.preload     = 'auto';
   
-    // try to start playback; if blocked, unlock on click
+    // kick off playback (may need user click fallback)
     v.play().catch(() => {
       document.addEventListener('click', () => v.play(), { once: true });
     });
   
-    // only once the video is truly playing…
-    v.addEventListener('playing', () => {
-      console.log(`▶ video #${i} playing—creating texture`);
-      const vt = new THREE.VideoTexture(v);
-      vt.minFilter = THREE.LinearFilter;
-      vt.magFilter = THREE.LinearFilter;
-      vt.encoding  = THREE.sRGBEncoding;
-      vt.flipY     = false;
+    // build the texture right away — screens will be blank until frames decode
+    const vt = new THREE.VideoTexture(v);
+    vt.minFilter = THREE.LinearFilter;
+    vt.magFilter = THREE.LinearFilter;
+    vt.encoding  = THREE.sRGBEncoding;
+    vt.flipY     = false;
   
-      vidTextures.push(vt);
-      // if your CRT model is already loaded, stamp out the monitors
-      if (monitorPrototype) createMonitorField();
-    }, { once: true });
+    vidTextures.push(vt);
   }
   
-  // — load CRT model and do initial build if any videos are queued —  
+  // — load CRT model and stamp out monitors immediately —  
   new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
@@ -218,10 +214,10 @@ function setup() {
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
-        case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
+        case 'Node-Mesh':   mat.color.set(0xa4de31); break; // frame
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
         default:            mat.color.set(0x140f10);
       }
       node.material = mat;
@@ -229,12 +225,10 @@ function setup() {
     });
   
     monitorPrototype = gltf.scene;
-    console.log('CRT model loaded');
-    // if any textures arrived first, build monitors now
-    if (vidTextures.length > 0) createMonitorField();
+    createMonitorField();  // immediately add all monitors
   });
   
-  // preserve your resize listener
+  // keep your resize listener
   window.addEventListener('resize', resize);
 
 
