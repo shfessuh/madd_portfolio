@@ -177,7 +177,10 @@ function setup() {
 
   // video for monitors
   // — video for monitors —  
-// — video for monitors: immediate VideoTexture creation —  
+  // — video for monitors: immediate VideoTexture creation —  
+  const vidTextures = [];
+  const videoReady  = [];  // will hold a boolean per video
+  
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
     v.muted       = true;
@@ -189,16 +192,24 @@ function setup() {
       document.addEventListener('click', () => v.play(), { once: true })
     );
   
-    // create texture right away—no waiting on canplay
+    // create the VideoTexture immediately (even if no frame yet)
     const vt = new THREE.VideoTexture(v);
     vt.minFilter = THREE.LinearFilter;
     vt.magFilter = THREE.LinearFilter;
     vt.encoding  = THREE.sRGBEncoding;
     vt.flipY     = false;
-  
     vidTextures.push(vt);
+  
+    // mark “not yet ready”
+    videoReady.push(false);
+  
+    // once the browser actually has a frame, flip our flag
+    v.addEventListener('playing', () => {
+      console.log(`▶ video #${i} is now playing`);
+      videoReady[i-1] = true;
+    }, { once: true });
   }
-    
+
   // — load CRT model and stamp out monitors immediately —  
   new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
