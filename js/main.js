@@ -472,9 +472,12 @@ function animate() {
       tex.needsUpdate = true;
     }
   });
-  vidTextures.forEach(tex => {
-    if (tex) tex.needsUpdate = true;
-  });  
+  vidTextures.forEach((tex, i) => {
+    const v = document.getElementById(`v${i+1}`);
+    if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      tex.needsUpdate = true;
+    }
+  });
     // final render
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
