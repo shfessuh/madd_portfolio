@@ -203,7 +203,8 @@ if (
 
       
 
-    new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+     new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+      // 1) Re‐materialize every mesh in the loaded scene
       gltf.scene.traverse(node => {
         if (!node.isMesh) return;
         const mat = new THREE.MeshBasicMaterial({
@@ -214,20 +215,45 @@ if (
           opacity    : node.material.opacity
         });
         switch (node.name) {
-          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
-          case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen face
+          case 'Node-Mesh':   mat.color.set(0xa4de31); break; // front
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
           case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
           default:            mat.color.set(0x140f10);
         }
         node.material = mat;
         node.material.needsUpdate = true;
       });
+    
+      // 2) Save the prototype for cloning later
       monitorPrototype = gltf.scene;
+    
+      // ── DEBUG WIREFRAME: add a bright red wireframe clone at the origin ──
+      const testClone = monitorPrototype.clone();
+      testClone.traverse(n => {
+        if (n.isMesh) {
+          n.material = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            wireframe: true
+          });
+        }
+      });
+      testClone.position.set(0, 0, 0);
+      scene.add(testClone);
+      console.log("👉 Added wireframe‐test clone at origin");
+    
+      // 3) Now build your actual monitors
       createMonitorField();
-    });
+    },
+    // onProgress (optional):
+    undefined,
+    // onError:
+    err => console.error('❌ CRT_monitor.glb failed to load:', err)
+    );
+    
+    // keep resize handler
     window.addEventListener('resize', resize);
-      
+
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
     ui.style.bottom   = '10px';
