@@ -176,46 +176,89 @@ if (
     geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
   
     // video for monitors
+// video for monitors
     for (let i = 1; i <= 15; i++) {
       const v = document.getElementById('v' + i);
-      v.muted = v.loop = true;
+      if (!v) {
+        console.error(`❌ Missing video element: v${i}`);
+        continue;
+      }
+    
+      v.muted       = true;
+      v.loop        = true;
       v.playsInline = true;
-      v.preload = 'auto';
+      v.preload     = 'auto';
       v.load();
-      v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
-      const vt = new THREE.VideoTexture(v);
-      vt.minFilter = vt.magFilter = THREE.LinearFilter;
-      vt.encoding  = THREE.sRGBEncoding;
-      vt.flipY     = false;
-      vt.needsUpdate = true;
-      vidTextures.push(vt);
+    
+      v.addEventListener('loadeddata', () => {
+        console.log(`✅ loadeddata: Video v${i} is ready`);
+    
+        const vt = new THREE.VideoTexture(v);
+        vt.minFilter = THREE.LinearFilter;
+        vt.magFilter = THREE.LinearFilter;
+        vt.encoding  = THREE.sRGBEncoding;
+        vt.flipY     = false;
+        vt.needsUpdate = true;
+        vidTextures.push(vt);
+    
+        console.log(`🎞️ Texture created for v${i}. Total loaded: ${vidTextures.length}/15`);
+    
+        // Only build monitors once all textures are ready and model is loaded
+        if (vidTextures.length === 15 && monitorPrototype) {
+          console.log('🚀 All videos and model ready — building monitors...');
+          createMonitorField();
+        }
+      });
+    
+      v.addEventListener('error', (e) => {
+        console.error(`❌ Video v${i} failed to load:`, e);
+      });
+    
+      v.play().then(() => {
+        console.log(`▶ Video v${i} started autoplay`);
+      }).catch(() => {
+        console.warn(`⚠️ Autoplay failed for v${i}, waiting for user interaction`);
+        document.addEventListener('click', () => v.play(), { once: true });
+      });
     }
-    // monitors
+    
+    // load monitor model
     new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
       gltf.scene.traverse(node => {
         if (!node.isMesh) return;
+    
         const mat = new THREE.MeshBasicMaterial({
           map        : node.material.map || null,
           side       : THREE.DoubleSide,
           toneMapped : false,
-          transparent: node.material.transparent,
-          opacity    : node.material.opacity
+          transparent: false,
+          opacity    : 1
         });
+    
         switch (node.name) {
-          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
           case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
-          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
+          case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
           default:            mat.color.set(0x140f10);
         }
+    
         node.material = mat;
         node.material.needsUpdate = true;
       });
+    
       monitorPrototype = gltf.scene;
-      createMonitorField();
+      console.log('📦 CRT monitor model loaded');
+    
+      // Only build monitors if video textures are already done
+      if (vidTextures.length === 15) {
+        console.log('🚀 Model ready and all videos loaded — building monitors...');
+        createMonitorField();
+      }
     });
+    
     window.addEventListener('resize', resize);
-  
+
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
     ui.style.bottom   = '10px';
