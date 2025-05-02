@@ -246,7 +246,7 @@ new THREE.GLTFLoader().load(
     if (vidTextures.length > 0) {
       createMonitorField();
     }
-  },
+  }
 
   // onProgress (you can omit or leave undefined)
   undefined,
