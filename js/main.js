@@ -28,8 +28,6 @@ let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
 let modelReady = false;
-const vidTextures = [];
-
 function tryBuildMonitors() {
   if (!modelReady || vidTextures.length === 0) return;
   createMonitorField();
