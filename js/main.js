@@ -178,92 +178,46 @@ if (
     geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
   
     // video for monitors
+
     for (let i = 1; i <= 15; i++) {
       const v = document.getElementById('v' + i);
-      // … your existing v.muted/loop/preload/etc …
-      
-      v.addEventListener('loadeddata', () => {
-        // build the VideoTexture
-        const vt = new THREE.VideoTexture(v);
-        vt.minFilter   = THREE.LinearFilter;
-        vt.magFilter   = THREE.LinearFilter;
-        vt.encoding    = THREE.sRGBEncoding;
-        vt.flipY       = false;
-        vt.needsUpdate = true;
-        vidTextures.push(vt);
-    
-        // increment our counter + log
-        videosLoaded++;
-        console.log(`✅ Video v${i} ready (${videosLoaded}/15)`);
-    
-        // if the model's already in, build monitors now
-        if (modelReady && videosLoaded === 15) {
-          console.log('🚀 All videos + model ready → createMonitorField()');
-          createMonitorField();
-        }
-      }, { once: true });
-    
-      // kick off playback (with fallback on user click)
-      v.play().catch(() =>
-        document.addEventListener('click', () => v.play(), { once: true })
-      );
+      v.muted = v.loop = true;
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.load();
+      v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+      vt.needsUpdate = true;
+      vidTextures.push(vt);
     }
 
-    // monitors
-// make sure these live alongside your other globals at the top:
-// … your video “loadeddata” handlers should already be doing:
-// videosLoaded++
-// if (modelReady && videosLoaded === 15) createMonitorField();
-
-    new THREE.GLTFLoader().load(
-      'models/CRT_monitor.glb',
-    
-      // onLoad
-      gltf => {
-        gltf.scene.traverse(node => {
-          if (!node.isMesh) return;
-    
-          const mat = new THREE.MeshBasicMaterial({
-            map        : node.material.map || null,
-            side       : THREE.DoubleSide,
-            toneMapped : false,
-            transparent: node.material.transparent,
-            opacity    : node.material.opacity
-          });
-    
-          switch (node.name) {
-            case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
-            case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-            case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
-            case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
-            default:            mat.color.set(0x140f10);
-          }
-    
-          node.material = mat;
-          node.material.needsUpdate = true;
+    new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        const mat = new THREE.MeshBasicMaterial({
+          map        : node.material.map || null,
+          side       : THREE.DoubleSide,
+          toneMapped : false,
+          transparent: node.material.transparent,
+          opacity    : node.material.opacity
         });
-    
-        // store the prototype and mark the model as ready
-        monitorPrototype = gltf.scene;
-        modelReady = true;
-        console.log('✅ Model ready');
-    
-        // if all videos have already loaded, build the monitors now
-        if (videosLoaded === 15) {
-          console.log('🚀 Videos loaded → createMonitorField()');
-          createMonitorField();
+        switch (node.name) {
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+          case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+          default:            mat.color.set(0x140f10);
         }
-      },
-    
-      // onProgress (optional—you can omit or leave undefined)
-      undefined,
-    
-      // onError
-      err => console.error('❌ CRT_monitor.glb failed to load:', err)
-    );
-    
+        node.material = mat;
+        node.material.needsUpdate = true;
+      });
+      monitorPrototype = gltf.scene;
+      createMonitorField();
+    });
     window.addEventListener('resize', resize);
-    
       
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
