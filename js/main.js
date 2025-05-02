@@ -178,54 +178,41 @@ function setup() {
 
   // video for monitors
 // video for monitors
+// 1) video‐for‐monitors setup
 for (let i = 1; i <= 15; i++) {
   const v = document.getElementById(`v${i}`);
-  if (!v) {
-    console.error(`Video element v${i} not found`);
-    continue;
-  }
-
-  // 1) Make it CORS-friendly
-  v.crossOrigin = 'anonymous';
-  v.muted       = true;
-  v.loop        = true;
-  v.playsInline = true;
-  v.preload     = 'auto';
+  if (!v) continue;
+  v.crossOrigin  = 'anonymous';
+  v.muted        = true;
+  v.loop         = true;
+  v.playsInline  = true;
+  v.preload      = 'auto';
   v.load();
 
-  // 2) Only once enough data is loaded, build the VideoTexture
   v.addEventListener('loadeddata', () => {
-    // start playback so pixels are available
     v.play().catch(() => {
       document.addEventListener('click', () => v.play(), { once: true });
     });
 
     const vt = new THREE.VideoTexture(v);
-    vt.minFilter       = THREE.LinearFilter;
-    vt.magFilter       = THREE.LinearFilter;
-    vt.encoding        = THREE.sRGBEncoding;
-    vt.flipY           = false;
-    // vt.needsUpdate    = true; // optional
-
+    vt.minFilter = vt.magFilter = THREE.LinearFilter;
+    vt.encoding  = THREE.sRGBEncoding;
+    vt.flipY     = false;
     vidTextures.push(vt);
-    console.log(`   → pushed vt for video${i}, vidTextures now=${vidTextures.length}`);
-    if (modelReady) {
-      console.log('   → calling createMonitorField() FROM video loadeddata');
-      createMonitorField();
+
+    loadedVideoCnt ++;
+    console.log(`video${i} texture ready (${loadedVideoCnt}/15)`);
+    if (loadedVideoCnt === 15) {
+      videosReady = true;
+      tryBuildMonitors();
     }
   }, { once: true });
 }
 
-  // monitors
-// just above this, make sure you’ve declared:
-// let modelReady = false;
-
+// 2) GLTF loader for CRT_monitors
 new THREE.GLTFLoader().load(
   'models/CRT_monitor.glb',
-
-  // onLoad
   gltf => {
-    // 1) Apply your existing material tweaks
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
       const mat = new THREE.MeshBasicMaterial({
@@ -246,9 +233,14 @@ new THREE.GLTFLoader().load(
       node.material.needsUpdate = true;
     });
 
-    // 2) Stash the prototype and mark ready
     monitorPrototype = gltf.scene;
     modelReady = true;
+    console.log('GLTF model loaded');
+    tryBuildMonitors();
+  },
+  undefined,
+  err => console.error('CRT_monitor.glb failed to load:', err)
+);
 
     // 3) If any video textures are already loaded, build monitors now
     if (vidTextures.length > 0) {
