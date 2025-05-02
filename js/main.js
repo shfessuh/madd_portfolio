@@ -180,13 +180,18 @@ if (
     // video for monitors
 
 
+
     for (let i = 1; i <= 15; i++) {
       const v = document.getElementById('v' + i);
+      v.crossOrigin  = 'anonymous';
+      v.preload = 'auto';
+      v.autoplay     = true;
       v.muted = v.loop = true;
       v.playsInline = true;
-      v.preload = 'auto';
+     
       v.load();
-      v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
+      v.play().catch(() =>
+        document.addEventListener('click', () => v.play(), { once: true })
       const vt = new THREE.VideoTexture(v);
       vt.minFilter = vt.magFilter = THREE.LinearFilter;
       vt.encoding  = THREE.sRGBEncoding;
@@ -194,6 +199,8 @@ if (
       vt.needsUpdate = true;
       vidTextures.push(vt);
     }
+
+      
 
     new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
       gltf.scene.traverse(node => {
