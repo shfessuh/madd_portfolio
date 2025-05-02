@@ -237,6 +237,7 @@ new THREE.GLTFLoader().load(
     modelReady = true;
     console.log('GLTF model loaded');
     tryBuildMonitors();
+    createMonitorField(); 
   },
   undefined,
   err => console.error('CRT_monitor.glb failed to load:', err)
