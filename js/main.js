@@ -179,82 +179,47 @@ if (
   
     // video for monitors
 
+
     for (let i = 1; i <= 15; i++) {
-      const v = document.getElementById(`v${i}`);
-      if (!v) continue;
-    
-      // … your existing v.muted/loop/preload/etc …
-    
-      v.addEventListener('loadeddata', () => {
-        const vt = new THREE.VideoTexture(v);
-        vt.minFilter   = THREE.LinearFilter;
-        vt.magFilter   = THREE.LinearFilter;
-        vt.encoding    = THREE.sRGBEncoding;
-        vt.flipY       = false;
-        vt.needsUpdate = true;
-        vidTextures[i - 1] = vt;
-    
-        console.log(`✅ video ${i} ready — patching monitor #${i - 1}`);
-        // if we've already built the monitor mesh, update its material
-        if (monitors[i - 1]) {
-          monitors[i - 1].traverse(n => {
-            if (n.isMesh && n.name === 'Node-Mesh_2') {
-              n.material.map = vt;
-              n.material.needsUpdate = true;
-            }
-          });
-        }
-      }, { once: true });
-    
-      v.play().catch(() =>
-        document.addEventListener('click', () => v.play(), { once: true })
-      );
+      const v = document.getElementById('v' + i);
+      v.muted = v.loop = true;
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.load();
+      v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+      vt.needsUpdate = true;
+      vidTextures.push(vt);
     }
-    // … inside your setup(), after your “video for monitors” loop …
 
-// 2) Load the CRT monitor model and build all blank monitors immediately
-    new THREE.GLTFLoader().load(
-      'models/CRT_monitor.glb',
-    
-      // onLoad
-      gltf => {
-        // fix up each mesh’s material channels
-        gltf.scene.traverse(node => {
-          if (!node.isMesh) return;
-          const mat = new THREE.MeshBasicMaterial({
-            map        : node.material.map || null,
-            side       : THREE.DoubleSide,
-            toneMapped : false,
-            transparent: node.material.transparent,
-            opacity    : node.material.opacity
-          });
-          switch (node.name) {
-            case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
-            case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-            case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
-            case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
-            default:            mat.color.set(0x140f10);
-          }
-          node.material = mat;
-          node.material.needsUpdate = true;
+    new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        const mat = new THREE.MeshBasicMaterial({
+          map        : node.material.map || null,
+          side       : THREE.DoubleSide,
+          toneMapped : false,
+          transparent: node.material.transparent,
+          opacity    : node.material.opacity
         });
-    
-        monitorPrototype = gltf.scene;
-        console.log('✅ CRT model loaded — creating all monitors now');
-        // build 15 clones (they’ll start out blank)
-        createMonitorField();
-      },
-    
-      // onProgress (you can omit if unused)
-      undefined,
-    
-      // onError
-      err => console.error('❌ CRT_monitor.glb failed to load:', err)
-    );
-    
-    // make sure resize still works
+        switch (node.name) {
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+          case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+          default:            mat.color.set(0x140f10);
+        }
+        node.material = mat;
+        node.material.needsUpdate = true;
+      });
+      monitorPrototype = gltf.scene;
+      createMonitorField();
+    });
     window.addEventListener('resize', resize);
-
+      
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
     ui.style.bottom   = '10px';
