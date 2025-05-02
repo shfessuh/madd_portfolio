@@ -28,6 +28,13 @@ let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
 let modelReady = false;
+let videosReady = false;
+
+function tryBuildMonitors() {
+  if ( modelReady && videosReady ) {
+    createMonitorField();
+  }
+}
 
 const manualOffsets = [
   // Top Line
