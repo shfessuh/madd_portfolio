@@ -75,7 +75,6 @@ const faceMessages = [
   reverse("B O R N   F R O M   P A I N,  L O S S ,   A N D    E N D L E S S   T E A R S,  I   W A N D E R   A S   A N   A S Y L U M   S E E K E R,  H O P I N G   F O R   T H E   D A Y   P E A C E    B R I N G S    M E   H O M E   ")
 ];
 
-const vidTextures = [];
 const labels    = [];
 const raycaster = new THREE.Raycaster();
 const mouse     = new THREE.Vector2();
