@@ -208,7 +208,9 @@ for (let i = 1; i <= 15; i++) {
     // vt.needsUpdate    = true; // optional
 
     vidTextures.push(vt);
+    console.log(`   → pushed vt for video${i}, vidTextures now=${vidTextures.length}`);
     if (modelReady) {
+      console.log('   → calling createMonitorField() FROM video loadeddata');
       createMonitorField();
     }
   }, { once: true });
