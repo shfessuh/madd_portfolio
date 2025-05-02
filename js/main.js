@@ -192,7 +192,7 @@ for (let i = 1; i <= 15; i++) {
   v.loop = true;
   v.playsInline = true;
   v.preload = 'auto';
-  v.src = `./videos/v${i}.mp4`; // Use explicit paths
+  v.src = `./videos/video${i}.mp4`; // Use explicit paths
   document.body.appendChild(v); // Make sure they're in DOM
 
   v.addEventListener('loadeddata', () => {
