@@ -28,7 +28,6 @@ let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
 let modelReady = false;
-let modelReady = false;
 const vidTextures = [];
 
 function tryBuildMonitors() {
