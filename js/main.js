@@ -27,6 +27,8 @@ let rotationEnabled = false,
 let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
+let loadedVideos = 0;
+let loadedModel  = false;
 
 const manualOffsets = [
   // Top Line
@@ -73,7 +75,7 @@ const faceMessages = [
   reverse("B O R N   F R O M   P A I N,  L O S S ,   A N D    E N D L E S S   T E A R S,  I   W A N D E R   A S   A N   A S Y L U M   S E E K E R,  H O P I N G   F O R   T H E   D A Y   P E A C E    B R I N G S    M E   H O M E   ")
 ];
 
-
+const vidTextures = [];
 const labels    = [];
 const raycaster = new THREE.Raycaster();
 const mouse     = new THREE.Vector2();
@@ -175,63 +177,92 @@ function setup() {
   scene.add(cube);
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
-  // — video for monitors —  
+// ─── at the top of your script, alongside your other globals ───
+  
+
+  
+  // ─── inside your setup() function, replace your existing video + GLTF load with this ───
+  
+  // 1) Set up all 15 video elements as VideoTextures, wait for canplay
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
-    v.crossOrigin = 'anonymous';
-    v.muted        = true;
-    v.loop         = true;
-    v.autoplay     = true;      // allow muted autoplay
-    v.playsInline  = true;
-    v.preload      = 'auto';
-
-    // try to start playback; if blocked, unlock on click
-    v.play().catch(() => {
-      document.addEventListener('click', () => v.play(), { once: true });
-    });
-
-    // only once the video is truly playing…
-    v.addEventListener('playing', () => {
-      console.log(`▶ video #${i} playing—creating texture`);
+    v.muted       = true;
+    v.loop        = true;
+    v.autoplay    = true;      // allow muted autoplay
+    v.playsInline = true;
+    v.preload     = 'auto';
+    v.src         = `videos/video${i}.mp4`;
+  
+    // kick off playback; if it’s blocked, unlock on first click
+    v.play().catch(() =>
+      document.addEventListener('click', () => v.play(), { once: true })
+    );
+  
+    // only once the browser can actually supply a frame…
+    v.addEventListener('canplay', () => {
+      console.log(`▶ video #${i} canplay, readyState=${v.readyState}`);
       const vt = new THREE.VideoTexture(v);
       vt.minFilter = THREE.LinearFilter;
       vt.magFilter = THREE.LinearFilter;
       vt.encoding  = THREE.sRGBEncoding;
       vt.flipY     = false;
-
-      vidTextures.push(vt);
-      // if your CRT model is already loaded, stamp out the monitors
-      if (monitorPrototype) createMonitorField();
+  
+      vidTextures[i - 1] = vt;    // store in correct slot 0–14
+      loadedVideos++;
+  
+      // if the model is already loaded *and* all videos are ready, build monitors
+      if (loadedVideos === 15 && loadedModel) {
+        createMonitorField();
+      }
     }, { once: true });
   }
-
-  // — load CRT model and do initial build if any videos are queued —  
-  new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
-    gltf.scene.traverse(node => {
-      if (!node.isMesh) return;
-      const mat = new THREE.MeshBasicMaterial({
-        map        : node.material.map || null,
-        side       : THREE.DoubleSide,
-        toneMapped : false,
-        transparent: node.material.transparent,
-        opacity    : node.material.opacity
+  
+  // 2) Load the CRT model
+  new THREE.GLTFLoader().load(
+    'models/CRT_monitor.glb',
+  
+    // onLoad
+    gltf => {
+      // your existing material‐override logic…
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        const mat = new THREE.MeshBasicMaterial({
+          map        : node.material.map || null,
+          side       : THREE.DoubleSide,
+          toneMapped : false,
+          transparent: node.material.transparent,
+          opacity    : node.material.opacity
+        });
+        switch (node.name) {
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; // screen
+          case 'Node-Mesh':   mat.color.set(0xa4de31); break; // frame
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; // side
+          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+          default:            mat.color.set(0x140f10);
+        }
+        node.material = mat;
+        node.material.needsUpdate = true;
       });
-      switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
-        case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
-        default:            mat.color.set(0x140f10);
+  
+      monitorPrototype = gltf.scene;
+      console.log('CRT model loaded');
+      loadedModel = true;
+  
+      // if all videos have already fired canplay, build monitors now
+      if (loadedVideos === 15) {
+        createMonitorField();
       }
-      node.material = mat;
-      node.material.needsUpdate = true;
-    });
+    },
+  
+    // onProgress
+    undefined,
+  
+    // onError
+    err => console.error('CRT_monitor.glb failed to load:', err)
+  );
 
-    monitorPrototype = gltf.scene;
-    console.log('CRT model loaded');
-    // if any textures arrived first, build monitors now
-    if (vidTextures.length > 0) createMonitorField();
-  });
+// …and leave your resize listener, animate loop, etc. as before.
+
 
   // preserve your resize listener
   window.addEventListener('resize', resize);
