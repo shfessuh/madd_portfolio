@@ -12,6 +12,18 @@
   font-weight: normal;
   font-style: normal;
 }
+
+.video-hidden {
+  position: absolute;
+  top:    -100px;
+  left:   -100px;
+  width:   10px;
+  height:  10px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+
 #gradient-bg {
   position: absolute;
   top: 0;
