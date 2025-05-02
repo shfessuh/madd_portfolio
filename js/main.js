@@ -190,8 +190,9 @@ if (
       v.playsInline = true;
      
       v.load();
-      v.play().catch(() =>
-        document.addEventListener('click', () => v.play(), { once: true })
+      v.play().catch(() => {
+        document.addEventListener('click', () => v.play(), { once: true });
+      });
       const vt = new THREE.VideoTexture(v);
       vt.minFilter = vt.magFilter = THREE.LinearFilter;
       vt.encoding  = THREE.sRGBEncoding;
