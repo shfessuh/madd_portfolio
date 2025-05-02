@@ -69,7 +69,7 @@ function reverse(str) {
 const faceMessages = [
   reverse("M Y   S H I E L D.    I T S    A B S E N C E    T I G H T E N S    M Y    C H E S T;    I T S    W E I G H T   C A L M S    M E.  "),
   reverse("I N   C H A O S,   H I S   H Y M N S   Q U I E T   M Y   S P I R I T   A N D   M A K E   M Y   H E A R T   W E E P   W I T H   J O Y  "),
-  reverse("S U R R O U N D E D   B Y   G R I E F’ S   A N G E L S,   Y E T   P E A C E   F I N D S   I T S   P L A C E  "),
+  reverse("S U R R O U N D E D   B Y   G R I E F' S   A N G E L S,   Y E T   P E A C E   F I N D S   I T S   P L A C E  "),
   reverse("E A C H   B E A D,  A   G E N T L E   E C H O   O F   H E R   W I S D O M,   H E R   L O V E,   F O R E V E R   I N T E R T W I N E D   W I T H   M I N E   "),
   reverse("I N   H I S   H Y M N S,  I   H E A R   H E R   W A R M T H,   A   M E L O D Y   T H A T   S O O T H E S  A N D   C O N N E C T S   M E   T O   H O M E   "),
   reverse("B O R N   F R O M   P A I N,  L O S S ,   A N D    E N D L E S S   T E A R S,  I   W A N D E R   A S   A N   A S Y L U M   S E E K E R,  H O P I N G   F O R   T H E   D A Y   P E A C E    B R I N G S    M E   H O M E   ")
@@ -79,7 +79,6 @@ const labels    = [];
 const raycaster = new THREE.Raycaster();
 const mouse     = new THREE.Vector2();
 
-// function setup() 
 function setup() {
   const container = document.getElementById('container');
   scene    = new THREE.Scene();
@@ -176,12 +175,6 @@ function setup() {
   scene.add(cube);
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
-// ─── at the top of your script, alongside your other globals ───
-  
-
-  
-  // ─── inside your setup() function, replace your existing video + GLTF load with this ───
-  
   // 1) Set up all 15 video elements as VideoTextures, wait for canplay
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
@@ -192,7 +185,7 @@ function setup() {
     v.preload     = 'auto';
     v.src         = `videos/video${i}.mp4`;
   
-    // kick off playback; if it’s blocked, unlock on first click
+    // kick off playback; if it's blocked, unlock on first click
     v.play().catch(() =>
       document.addEventListener('click', () => v.play(), { once: true })
     );
@@ -260,12 +253,7 @@ function setup() {
     err => console.error('CRT_monitor.glb failed to load:', err)
   );
 
-// …and leave your resize listener, animate loop, etc. as before.
-
-
-  // preserve your resize listener
-  window.addEventListener('resize', resize);
-
+  // UI elements setup
   const ui = document.createElement('div');
   ui.style.position = 'absolute';
   ui.style.bottom   = '10px';
@@ -308,27 +296,78 @@ function setup() {
   animate();
 }
 
-// function CreateMonitorField() 
 function createMonitorField() {
-  monitors.forEach(m=>scene.remove(m)); monitors.length=0;
-  vidTextures.forEach((tex,i)=>{
-    const m = monitorPrototype.clone(); m.visible=false;
-    m.traverse(n=>{
-      if(!n.isMesh||n.name!=='Node-Mesh_2') return;
-      const g=n.geometry;
-      if(!g.attributes.uv) {
-        g.computeBoundingBox(); const bb=g.boundingBox,sz=new THREE.Vector3(); bb.getSize(sz);
-        const pos=g.attributes.position,uvs=[];
-        for(let j=0;j<pos.count;j++){ uvs.push((pos.getX(j)-bb.min.x)/sz.x,(pos.getY(j)-bb.min.y)/sz.y); }
-        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
+  monitors.forEach(m => scene.remove(m)); 
+  monitors.length = 0;
+  
+  vidTextures.forEach((tex, i) => {
+    const m = monitorPrototype.clone();
+    // Don't set visibility here - we'll handle it in animate()
+    
+    m.traverse(n => {
+      if (!n.isMesh || n.name !== 'Node-Mesh_2') return;
+      const g = n.geometry;
+      if (!g.attributes.uv) {
+        g.computeBoundingBox(); 
+        const bb = g.boundingBox, sz = new THREE.Vector3(); 
+        bb.getSize(sz);
+        const pos = g.attributes.position, uvs = [];
+        for (let j = 0; j < pos.count; j++) { 
+          uvs.push((pos.getX(j) - bb.min.x) / sz.x, (pos.getY(j) - bb.min.y) / sz.y); 
+        }
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       }
-      n.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false}); n.material.needsUpdate=true;
+      n.material = new THREE.MeshBasicMaterial({
+        map: tex, 
+        side: THREE.DoubleSide,
+        toneMapped: false
+      }); 
+      n.material.needsUpdate = true;
     });
-    scene.add(m); monitors.push(m);
+    
+    scene.add(m); 
+    monitors.push(m);
+    
+    // Initially hide monitors until positioned
+    m.visible = false;
   });
+  
+  console.log(`Created ${monitors.length} monitors`);
+  
+  // Immediately try to position monitors if conditions are met
+  positionMonitors();
 }
 
-// function onPointerDown()
+function positionMonitors() {
+  // Only position if we haven't already done so and all components are ready
+  if (!dreamInjected && monitors.length > 0 && loadedVideos === 15 && loadedModel) {
+    console.log("Positioning monitors...");
+    
+    const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+    const base  = camera.position.clone().addScaledVector(fwd, 12);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
+    monitors.forEach((m, i) => {
+      const o = manualOffsets[i] || { x: 0, y: 0, z: 0 };
+      m.position.copy(base)
+       .addScaledVector(right, o.x)
+       .addScaledVector(up, o.y)
+       .add(new THREE.Vector3(0, 0, o.z || 0));
+       
+      m.quaternion.copy(camera.quaternion);
+      m.rotateY(Math.PI);
+      m.scale.set(18, 18, 18);
+      m.visible = true; // Make monitors visible
+    });
+    
+    dreamInjected = true;
+    console.log("Monitors positioned and made visible");
+    return true;
+  }
+  return false;
+}
+
 function onPointerDown(evt) {
   if (isSpawning) return;
   const rect = renderer.domElement.getBoundingClientRect();
@@ -378,7 +417,7 @@ function onPointerDown(evt) {
   spawnTime            = performance.now();
   setTimeout(() => spawnWord(idx), 600);
 }
-// function animate()
+
 function animate() {
   requestAnimationFrame(animate);
   const dt    = clock.getDelta();
@@ -437,24 +476,9 @@ function animate() {
   renderer.setClearColor(0x0a0a0a, 0);
   document.getElementById("gradient-bg").style.opacity = f.toFixed(2);
 
-  // inject monitors once zoomed past FADE_START
-  if (!dreamInjected && camera.position.z > FADE_START) {
-    const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
-    const base  = camera.position.clone().addScaledVector(fwd, 12);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-
-    monitors.forEach((m, i) => {
-      const o = manualOffsets[i] || { x: 0, y: 0 };
-      m.position.copy(base)
-       .addScaledVector(right, o.x)
-       .addScaledVector(up,    o.y);
-      m.quaternion.copy(camera.quaternion);
-      m.rotateY(Math.PI);
-      m.scale.set(18, 18, 18);
-      m.visible = true;
-    });
-    dreamInjected = true;
+  // Try to position monitors if not done yet
+  if (!dreamInjected) {
+    positionMonitors();
   }
 
   // animate spawned words
@@ -501,7 +525,7 @@ function animate() {
     }
   });
 
-  // ── NEW: update video textures only when the video has data ──
+  // Update video textures only when the video has data
   vidTextures.forEach((tex, i) => {
     const vid = document.getElementById(`v${i + 1}`);
     if (vid && vid.readyState >= vid.HAVE_CURRENT_DATA) {
@@ -513,9 +537,7 @@ function animate() {
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
-  
 
-// function spawnWord(faceIdx)
 function spawnWord(faceIdx) {
   if (isSpawning) return;
   isSpawning = true;
@@ -590,6 +612,23 @@ function resize() {
   controls.handleResize();
 }
 
-window.addEventListener('load',setup);
-window.addEventListener('resize',resize);
+// Debug function to check monitor status - can be called from console
+function debugMonitors() {
+  console.log({
+    loadedVideos,
+    loadedModel,
+    dreamInjected,
+    monitorCount: monitors.length,
+    monitorVisibility: monitors.map(m => m.visible),
+    cameraPosition: camera.position.clone()
+  });
+  
+  // Force position monitors if needed
+  if (!dreamInjected && monitors.length > 0) {
+    console.log("Attempting to force position monitors");
+    positionMonitors();
+  }
+}
 
+window.addEventListener('load', setup);
+window.addEventListener('resize', resize);
