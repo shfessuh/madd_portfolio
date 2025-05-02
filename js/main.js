@@ -78,211 +78,144 @@ if (
   const raycaster = new THREE.Raycaster();
   const mouse     = new THREE.Vector2();
   
-function setup() {
-  const container = document.getElementById('container');
-
-  // ── Scene & CSS3D renderer ──
-  scene    = new THREE.Scene();
-  cssScene = new THREE.Scene();
-  camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0.2, 0, 8.5);
-
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
-  container.appendChild(renderer.domElement);
-
-  cssRenderer = new THREE.CSS3DRenderer();
-  cssRenderer.setSize(window.innerWidth, window.innerHeight);
-  cssRenderer.domElement.style.position      = 'absolute';
-  cssRenderer.domElement.style.top           = '0';
-  cssRenderer.domElement.style.left          = '0';
-  cssRenderer.domElement.style.pointerEvents = 'none';
-  container.appendChild(cssRenderer.domElement);
-
-  // ── Controls ──
-  controls = new THREE.TrackballControls(camera, renderer.domElement);
-  controls.enableRotate         = false;
-  controls.staticMoving         = false;
-  controls.dynamicDampingFactor = 0.4;
-  controls.zoomSpeed            = 0.5;
-  controls.panSpeed             = 1.0;
-  controls.maxDistance          = 90;
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
-
-  // ── Audio ──
-  listener = new THREE.AudioListener();
-  camera.add(listener);
-  bgSound = new THREE.Audio(listener);
-  new THREE.AudioLoader().load('videos/sound.mp4', buf => {
-    bgSound.setBuffer(buf);
-    bgSound.setLoop(true);
-    bgSound.setVolume(0);
-    audioLoaded = true;
-  });
-
-  // ── Lighting ──
-  scene.add(new THREE.AmbientLight(0x0d0b0b));
-  const spot = new THREE.SpotLight(0xffffff, 1.5);
-  spot.position.set(5, 10, 5);
-  spot.angle    = Math.PI / 8;
-  spot.penumbra = 0.3;
-  spot.decay    = 2;
-  spot.distance = 50;
-  spot.castShadow            = true;
-  spot.shadow.mapSize.width  = 102;
-  spot.shadow.mapSize.height = 102;
-  spot.shadow.camera.near    = 0.5;
-  spot.shadow.camera.far     = 50;
-  spot.shadow.camera.fov     = 30;
-  scene.add(spot);
-
-  // ── Sphere & Ground ──
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(5, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
-  );
-  sphere.position.set(-9, 0, 0);
-  sphere.castShadow = sphere.receiveShadow = true;
-  scene.add(sphere);
-
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(15, 15, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
-  );
-  ground.rotation.x    = -Math.PI / 2;
-  ground.position.y    = -5;
-  ground.receiveShadow = true;
-  scene.add(ground);
-
-  // ── Rotating cube ──
-  const imgs = ['image1.jpg','image2.jpg','image3.jpg','image4.jpg','image5.jpg','image6.jpg']
-    .map(n => 'Images/' + n);
-  const mats = imgs.map(src => new THREE.MeshBasicMaterial({
-    map: new THREE.TextureLoader().load(src)
-  }));
-  const geo = new THREE.BoxGeometry(1,1,1).toNonIndexed();
-  cube = new THREE.Mesh(geo, mats);
-  cube.position.set(0, -3, 0);
-  cube.scale.set(1.8, 1.8, 1.8);
-  scene.add(cube);
-  geo.clearGroups();
-  for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
-
-  // ── Load model + videos in parallel ──
-  const modelPromise = new Promise((res, rej) => {
-    new THREE.GLTFLoader().load(
-      'models/CRT_monitor.glb',
-      gltf => {
-        gltf.scene.traverse(node => {
-          if (!node.isMesh) return;
-          const mat = new THREE.MeshBasicMaterial({
-            map        : node.material.map || null,
-            side       : THREE.DoubleSide,
-            toneMapped : false,
-            transparent: node.material.transparent,
-            opacity    : node.material.opacity
-          });
-          switch (node.name) {
-            case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
-            case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-            case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
-            case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
-            default:            mat.color.set(0x140f10);
-          }
-          node.material = mat;
-        });
-        monitorPrototype = gltf.scene;
-        console.log('✅ CRT model loaded');
-        res();
-      },
-      undefined,
-      err => {
-        console.error('❌ CRT_monitor.glb error', err);
-        rej(err);
-      }
+  // function setup() 
+  function setup() {
+    const container = document.getElementById('container');
+    scene    = new THREE.Scene();
+    cssScene = new THREE.Scene();
+    camera   = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0.2, 0, 8.5);
+  
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+  
+    cssRenderer = new THREE.CSS3DRenderer();
+    cssRenderer.setSize(window.innerWidth, window.innerHeight);
+    cssRenderer.domElement.style.position      = 'absolute';
+    cssRenderer.domElement.style.top           = '0';
+    cssRenderer.domElement.style.left          = '0';
+    cssRenderer.domElement.style.pointerEvents = 'none';
+    container.appendChild(cssRenderer.domElement);
+  
+    haloGroup = new THREE.Group();
+    cssScene.add(haloGroup);
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  
+    controls = new THREE.TrackballControls(camera, renderer.domElement);
+    controls.enableRotate         = false;
+    controls.staticMoving         = false;
+    controls.dynamicDampingFactor = 0.4;
+    controls.zoomSpeed            = 0.5;
+    controls.panSpeed             = 1.0;
+    controls.maxDistance          = 90;
+  
+    listener = new THREE.AudioListener();
+    camera.add(listener);
+    bgSound  = new THREE.Audio(listener);
+    new THREE.AudioLoader().load('videos/sound.mp4', buf => {
+      bgSound.setBuffer(buf);
+      bgSound.setLoop(true);
+      bgSound.setVolume(0);
+      audioLoaded = true;
+    });
+  
+    scene.add(new THREE.AmbientLight(0x0d0b0b));
+    const spot = new THREE.SpotLight(0xffffff, 1.5);
+    spot.position.set(5, 10, 5);
+    spot.angle    = Math.PI / 8;
+    spot.penumbra = 0.3;
+    spot.decay    = 2;
+    spot.distance = 50;
+    spot.castShadow            = true;
+    spot.shadow.mapSize.width  = 102;
+    spot.shadow.mapSize.height = 102;
+    spot.shadow.camera.near    = 0.5;
+    spot.shadow.camera.far     = 50;
+    spot.shadow.camera.fov     = 30;
+    scene.add(spot);
+  
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(5, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
     );
-  });
-
-  const videoPromises = Array.from({ length: 15 }, (_, i) => {
-    return new Promise(resolve => {
-      const v = document.getElementById(`v${i+1}`);
-      v.crossOrigin  = 'anonymous';
-      v.muted        = true;
-      v.loop         = true;
-      v.playsInline  = true;
-      v.preload      = 'auto';
+    sphere.position.set(-9, 0, 0);
+    sphere.castShadow    = true;
+    sphere.receiveShadow = true;
+    scene.add(sphere);
+  
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(15, 15, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
+    );
+    ground.rotation.x    = -Math.PI / 2;
+    ground.position.y    = -5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+  
+    const imgFolder = 'Images/';
+    const imgs = [
+      'image1.jpg',
+      'image2.jpg',
+      'image3.jpg',
+      'image4.jpg',
+      'image5.jpg',
+      'image6.jpg'
+    ].map(name => imgFolder + name);
+    const texLoader = new THREE.TextureLoader();
+    const mats = imgs.map(src => new THREE.MeshBasicMaterial({ map: texLoader.load(src) }));
+    const geo  = new THREE.BoxGeometry(1,1,1).toNonIndexed();
+    cube = new THREE.Mesh(geo, mats);
+    cube.position.set(0, -3, 0);
+    cube.scale.set(1.8, 1.8, 1.8);
+    scene.add(cube);
+    geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
+  
+    // video for monitors
+    for (let i = 1; i <= 15; i++) {
+      const v = document.getElementById('v' + i);
+      v.muted = v.loop = true;
+      v.playsInline = true;
+      v.preload = 'auto';
       v.load();
-      v.addEventListener('loadeddata', () => {
-        const vt = new THREE.VideoTexture(v);
-        vt.minFilter = vt.magFilter = THREE.LinearFilter;
-        vt.encoding  = THREE.sRGBEncoding;
-        vt.flipY     = false;
-        vidTextures[i] = vt;
-        console.log(`🎞️ v${i+1} ready`);
-        resolve();
-      }, { once: true });
-      v.play().catch(() => {
-        document.addEventListener('click', () => v.play(), { once: true });
+      v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+      vt.needsUpdate = true;
+      vidTextures.push(vt);
+    }
+    // monitors
+    new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        const mat = new THREE.MeshBasicMaterial({
+          map        : node.material.map || null,
+          side       : THREE.DoubleSide,
+          toneMapped : false,
+          transparent: node.material.transparent,
+          opacity    : node.material.opacity
+        });
+        switch (node.name) {
+          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+          case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+          default:            mat.color.set(0x140f10);
+        }
+        node.material = mat;
+        node.material.needsUpdate = true;
       });
-    });
-  });
-
-  Promise.all([ modelPromise, ...videoPromises ]).then(() => {
-    console.log('🚀 All assets ready—creating monitors');
-    createMonitorField();
-  }).catch(err => console.error(err));
-
-  // ── Final setup ──
-  window.addEventListener('resize', resize);
-  buildUI();   // your nav + pan/zoom buttons
-  animate();
-}
-
-
-  const videoPromises = Array.from({length:15}, (_, i) => {
-    return new Promise(resolve => {
-      const v = document.getElementById(`v${i+1}`);
-      v.crossOrigin  = 'anonymous';
-      v.muted        = true;
-      v.loop         = true;
-      v.playsInline  = true;
-      v.preload      = 'auto';
-      v.load();
-      v.addEventListener('loadeddata', () => {
-        const vt = new THREE.VideoTexture(v);
-        vt.minFilter = vt.magFilter = THREE.LinearFilter;
-        vt.encoding  = THREE.sRGBEncoding;
-        vt.flipY     = false;
-        vidTextures[i] = vt;
-        console.log(`🎞️ v${i+1} texture ready`);
-        resolve();
-      }, { once: true });
-      // kick off autoplay & fallback
-      v.play().catch(() => {
-        document.addEventListener('click', () => v.play(), { once: true });
-      });
-    });
-  });
-
-  // When *all* are ready, build your monitors
-  Promise.all([ modelPromise, ...videoPromises ])
-    .then(() => {
-      console.log('🚀 All assets ready — creating monitors');
+      monitorPrototype = gltf.scene;
       createMonitorField();
-    })
-    .catch(err => console.error('❌ Asset load failed', err));
-
-  // UI buttons + resize + animate
-  window.addEventListener('resize', resize);
-  buildUI();    // your existing nav‑buttons / pan / zoom
-  animate();
-}
-
-
+    });
+    window.addEventListener('resize', resize);
+  
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
     ui.style.bottom   = '10px';
@@ -327,58 +260,24 @@ function setup() {
   
   // function CreateMonitorField() 
   function createMonitorField() {
-  monitors.forEach(m => scene.remove(m));
-  monitors.length = 0;
-
-  vidTextures.forEach((tex, i) => {
-    const m = monitorPrototype.clone();
-    m.visible = true;              // ⚠️ make it visible immediately
-
-    m.traverse(n => {
-      if (!n.isMesh || n.name !== 'Node-Mesh_2') return;
-      // only compute UVs once
-      const g = n.geometry;
-      if (!g.attributes.uv) {
-        g.computeBoundingBox();
-        const bb = g.boundingBox, sz = new THREE.Vector3();
-        bb.getSize(sz);
-        const pos = g.attributes.position, uvs = [];
-        for (let j = 0; j < pos.count; j++) {
-          uvs.push(
-            (pos.getX(j) - bb.min.x) / sz.x,
-            (pos.getY(j) - bb.min.y) / sz.y
-          );
+    monitors.forEach(m=>scene.remove(m)); monitors.length=0;
+    vidTextures.forEach((tex,i)=>{
+      const m = monitorPrototype.clone(); m.visible=false;
+      m.traverse(n=>{
+        if(!n.isMesh||n.name!=='Node-Mesh_2') return;
+        const g=n.geometry;
+        if(!g.attributes.uv) {
+          g.computeBoundingBox(); const bb=g.boundingBox,sz=new THREE.Vector3(); bb.getSize(sz);
+          const pos=g.attributes.position,uvs=[];
+          for(let j=0;j<pos.count;j++){ uvs.push((pos.getX(j)-bb.min.x)/sz.x,(pos.getY(j)-bb.min.y)/sz.y); }
+          g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
         }
-        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      }
-
-      n.material = new THREE.MeshBasicMaterial({
-        map:       tex,
-        side:      THREE.DoubleSide,
-        toneMapped:false
+        n.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false}); n.material.needsUpdate=true;
       });
-      n.material.needsUpdate = true;
+      scene.add(m); monitors.push(m);
     });
-
-    // position & scale right away (no fade threshold)
-    const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
-    const base  = camera.position.clone().addScaledVector(fwd, 12);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-    const o     = manualOffsets[i] || { x: 0, y: 0 };
-
-    m.position.copy(base)
-     .addScaledVector(right, o.x)
-     .addScaledVector(up,    o.y);
-    m.quaternion.copy(camera.quaternion);
-    m.rotateY(Math.PI);
-    m.scale.set(18, 18, 18);
-
-    scene.add(m);
-    monitors.push(m);
-  });
-}
-
+  }
+  
   // function onPointerDown()
   function onPointerDown(evt) {
     if (isSpawning) return;
