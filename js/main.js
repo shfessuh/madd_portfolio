@@ -481,9 +481,6 @@ function animate() {
       tex.needsUpdate = true;
     }
   });
-  vidTextures.forEach(tex => {
-    if (tex) tex.needsUpdate = true;
-  });
 
   // final render
   renderer.render(scene, camera);
