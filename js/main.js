@@ -185,17 +185,16 @@ function setup() {
     v.autoplay    = true;
     v.playsInline = true;
     v.preload     = 'auto';
-    v.play().catch(() => {
-      document.addEventListener('click', () => v.play(), { once: true });
-    });
+    v.play().catch(() =>
+      document.addEventListener('click', () => v.play(), { once: true })
+    );
   
-    // create the VideoTexture right away
+    // create texture right away—no waiting on canplay
     const vt = new THREE.VideoTexture(v);
     vt.minFilter = THREE.LinearFilter;
     vt.magFilter = THREE.LinearFilter;
     vt.encoding  = THREE.sRGBEncoding;
     vt.flipY     = false;
-    // (no need for vt.autoUpdate or canplay listener)
   
     vidTextures.push(vt);
   }
@@ -276,7 +275,7 @@ function setup() {
 function createMonitorField() {
   monitors.forEach(m=>scene.remove(m)); monitors.length=0;
   vidTextures.forEach((tex,i)=>{
-    const m = monitorPrototype.clone(); m.visible=false;
+    const m = monitorPrototype.clone();
     m.traverse(n=>{
       if(!n.isMesh||n.name!=='Node-Mesh_2') return;
       const g=n.geometry;
@@ -477,6 +476,9 @@ function animate() {
     if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       tex.needsUpdate = true;
     }
+  });
+  vidTextures.forEach(tex => {
+    if (tex) tex.needsUpdate = true;
   });
     // final render
   renderer.render(scene, camera);
