@@ -307,21 +307,61 @@ new THREE.GLTFLoader().load(
 
 // function CreateMonitorField() 
 function createMonitorField() {
-  monitors.forEach(m=>scene.remove(m)); monitors.length=0;
-  vidTextures.forEach((tex,i)=>{
-    const m = monitorPrototype.clone(); m.visible=true;
-    m.traverse(n=>{
-      if(!n.isMesh||n.name!=='Node-Mesh_2') return;
-      const g=n.geometry;
-      if(!g.attributes.uv) {
-        g.computeBoundingBox(); const bb=g.boundingBox,sz=new THREE.Vector3(); bb.getSize(sz);
-        const pos=g.attributes.position,uvs=[];
-        for(let j=0;j<pos.count;j++){ uvs.push((pos.getX(j)-bb.min.x)/sz.x,(pos.getY(j)-bb.min.y)/sz.y); }
-        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
+  // DEBUG: see when this fires and how many textures we have
+  console.log('▶ createMonitorField() called • modelReady=', modelReady, 'vidTextures=', vidTextures.length);
+
+  // remove any old monitors
+  monitors.forEach(m => scene.remove(m));
+  monitors.length = 0;
+
+  vidTextures.forEach((tex, i) => {
+    const m = monitorPrototype.clone();
+    m.visible = true;  // ensure the monitor is shown
+
+    // apply UVs + video texture
+    m.traverse(n => {
+      if (!n.isMesh || n.name !== 'Node-Mesh_2') return;
+      const g = n.geometry;
+      if (!g.attributes.uv) {
+        g.computeBoundingBox();
+        const bb = g.boundingBox, sz = new THREE.Vector3();
+        bb.getSize(sz);
+        const pos = g.attributes.position, uvs = [];
+        for (let j = 0; j < pos.count; j++) {
+          uvs.push(
+            (pos.getX(j) - bb.min.x) / sz.x,
+            (pos.getY(j) - bb.min.y) / sz.y
+          );
+        }
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       }
-      n.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false}); n.material.needsUpdate=true;
+      n.material = new THREE.MeshBasicMaterial({
+        map: tex,
+        side: THREE.DoubleSide,
+        toneMapped: false
+      });
+      n.material.needsUpdate = true;
     });
-    scene.add(m); monitors.push(m);
+
+    // position & scale it immediately (same as your old zoom-gate)
+    const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+    const base  = camera.position.clone().addScaledVector(fwd, 12);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    const o     = manualOffsets[i] || { x: 0, y: 0 };
+
+    m.position.copy(base)
+     .addScaledVector(right, o.x)
+     .addScaledVector(up,    o.y);
+    m.quaternion.copy(camera.quaternion);
+    m.rotateY(Math.PI);
+    m.scale.set(18, 18, 18);
+
+    scene.add(m);
+    monitors.push(m);
+
+    // DEBUG: log each monitor’s position
+    console.log(`  → monitor #${i}`, m.position.toArray());
   });
 }
 
