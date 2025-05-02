@@ -217,7 +217,17 @@ new THREE.GLTFLoader().load(
   gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
-      // … your existing material setup …
+
+      // ← Restore this declaration:
+      const mat = new THREE.MeshBasicMaterial({
+        map        : node.material.map || null,
+        side       : THREE.DoubleSide,
+        toneMapped : false,
+        transparent: node.material.transparent,
+        opacity    : node.material.opacity
+      });
+
+      // now you can safely tweak its color:
       switch (node.name) {
         case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
@@ -225,6 +235,7 @@ new THREE.GLTFLoader().load(
         case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
         default:            mat.color.set(0x140f10);
       }
+
       node.material = mat;
       node.material.needsUpdate = true;
     });
@@ -240,7 +251,8 @@ new THREE.GLTFLoader().load(
 
   // onError
   err => console.error('CRT_monitor.glb failed to load:', err)
-);  // ← only one close of .load()
+);
+
 
 // 3) If any video textures arrived before the model, build monitors now
 if (vidTextures.length > 0) {
