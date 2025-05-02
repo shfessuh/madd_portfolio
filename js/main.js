@@ -262,7 +262,7 @@ if (
   function createMonitorField() {
     monitors.forEach(m=>scene.remove(m)); monitors.length=0;
     vidTextures.forEach((tex,i)=>{
-      const m = monitorPrototype.clone();
+      const m = monitorPrototype.clone(); m.visible=false;
       m.traverse(n=>{
         if(!n.isMesh||n.name!=='Node-Mesh_2') return;
         const g=n.geometry;
