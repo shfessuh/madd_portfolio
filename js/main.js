@@ -28,12 +28,12 @@ let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
 let modelReady = false;
-let videosReady = false;
+let modelReady = false;
+const vidTextures = [];
 
 function tryBuildMonitors() {
-  if ( modelReady && videosReady ) {
-    createMonitorField();
-  }
+  if (!modelReady || vidTextures.length === 0) return;
+  createMonitorField();
 }
 
 const manualOffsets = [
@@ -205,27 +205,20 @@ for (let i = 1; i <= 15; i++) {
     vt.minFilter = vt.magFilter = THREE.LinearFilter;
     vt.encoding  = THREE.sRGBEncoding;
     vt.flipY     = false;
-    vidTextures.push(vt);
 
-    loadedVideoCnt ++;
-    console.log(`video${i} texture ready (${loadedVideoCnt}/15)`);
-    if (loadedVideoCnt === 15) {
-      videosReady = true;
-      tryBuildMonitors();
-    }
+    vidTextures.push(vt);
+    console.log(`→ video texture #${vidTextures.length} ready`);
+    tryBuildMonitors();
   }, { once: true });
 }
+
 
 // 2) GLTF loader for CRT_monitors
 new THREE.GLTFLoader().load(
   'models/CRT_monitor.glb',
-
-  // onLoad
   gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
-
-      // ← Restore this declaration:
       const mat = new THREE.MeshBasicMaterial({
         map        : node.material.map || null,
         side       : THREE.DoubleSide,
@@ -233,8 +226,6 @@ new THREE.GLTFLoader().load(
         transparent: node.material.transparent,
         opacity    : node.material.opacity
       });
-
-      // now you can safely tweak its color:
       switch (node.name) {
         case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
@@ -242,9 +233,7 @@ new THREE.GLTFLoader().load(
         case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
         default:            mat.color.set(0x140f10);
       }
-
       node.material = mat;
-      node.material.needsUpdate = true;
     });
 
     monitorPrototype = gltf.scene;
@@ -252,14 +241,9 @@ new THREE.GLTFLoader().load(
     console.log('GLTF model loaded');
     tryBuildMonitors();
   },
-
-  // onProgress (optional)
   undefined,
-
-  // onError
   err => console.error('CRT_monitor.glb failed to load:', err)
 );
-
 
 // 3) If any video textures arrived before the model, build monitors now
 if (vidTextures.length > 0) {
