@@ -181,27 +181,34 @@ function setup() {
   for (let i = 1; i <= 15; i++) {
     const v = document.getElementById(`v${i}`);
     v.crossOrigin = 'anonymous';
-    v.muted       = true;
-    v.loop        = true;
-    v.autoplay    = true;      // allow muted autoplay
-    v.playsInline = true;
-    v.preload     = 'auto';
+    v.muted        = true;
+    v.loop         = true;
+    v.autoplay     = true;
+    v.playsInline  = true;
+    v.preload      = 'auto';
+    v.src          = `videos/video${i}.mp4`;
   
-    // kick off playback (may need user click fallback)
+    // kick off playback (muted autoplay)
     v.play().catch(() => {
       document.addEventListener('click', () => v.play(), { once: true });
     });
   
-    // build the texture right away — screens will be blank until frames decode
-    const vt = new THREE.VideoTexture(v);
-    vt.minFilter = THREE.LinearFilter;
-    vt.magFilter = THREE.LinearFilter;
-    vt.encoding  = THREE.sRGBEncoding;
-    vt.flipY     = false;
+    // only once the browser can actually supply frames...
+    v.addEventListener('canplay', () => {
+      console.log(`▶ video #${i} canplay, readyState=${v.readyState}`);
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = THREE.LinearFilter;
+      vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+      vt.autoUpdate = false;  // we’ll update it manually
   
-    vidTextures.push(vt);
+      vidTextures[i - 1] = vt;  // slot i→index i-1
+      // if your CRT model’s already loaded, re-stamp the monitors
+      if (monitorPrototype) createMonitorField();
+    }, { once: true });
   }
-  
+    
   // — load CRT model and stamp out monitors immediately —  
   new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
@@ -473,6 +480,9 @@ function animate() {
     if (vid && vid.readyState >= vid.HAVE_CURRENT_DATA) {
       tex.needsUpdate = true;
     }
+  });
+  vidTextures.forEach(tex => {
+    if (tex) tex.needsUpdate = true;
   });
 
   // final render
