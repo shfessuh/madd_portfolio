@@ -176,24 +176,43 @@ function setup() {
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
   // video for monitors
+  // — video for monitors —  
   for (let i = 1; i <= 15; i++) {
-    const v = document.getElementById('v' + i);
-    v.muted = v.loop = true;
-    v.playsInline = true;
-    v.preload = 'auto';
+    const v = document.getElementById(`v${i}`);
+    v.crossOrigin = 'anonymous';
+    v.muted        = true;
+    v.loop         = true;
+    v.playsInline  = true;
+    v.preload      = 'auto';
     v.load();
-    v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
-    const vt = new THREE.VideoTexture(v);
-    vt.minFilter = vt.magFilter = THREE.LinearFilter;
-    vt.encoding  = THREE.sRGBEncoding;
-    vt.flipY     = false;
-    vt.needsUpdate = true;
-    vidTextures.push(vt);
+  
+    // only when the first frame is decoded...
+    v.addEventListener('loadeddata', () => {
+      // try to play (muted autoplay)
+      v.play().catch(() => {
+        // fallback: play on first user click
+        document.addEventListener('click', () => v.play(), { once: true });
+      });
+  
+      // create the VideoTexture now that we have real frames
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter = THREE.LinearFilter;
+      vt.magFilter = THREE.LinearFilter;
+      vt.encoding  = THREE.sRGBEncoding;
+      vt.flipY     = false;
+  
+      // stash and rebuild monitors
+      vidTextures.push(vt);
+      console.log(`→ video texture #${i} ready`);
+      if (monitorPrototype) createMonitorField();
+    }, { once: true });
   }
-  // monitors
+  
+  // — load your CRT model and trigger initial build if videos are already queued —  
   new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
+      // reassign your materials exactly as before…
       const mat = new THREE.MeshBasicMaterial({
         map        : node.material.map || null,
         side       : THREE.DoubleSide,
@@ -202,18 +221,23 @@ function setup() {
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
         default:            mat.color.set(0x140f10);
       }
       node.material = mat;
       node.material.needsUpdate = true;
     });
+  
     monitorPrototype = gltf.scene;
-    createMonitorField();
+    console.log('CRT model loaded');
+    // if any videos already ready, this will inject screens now
+    if (vidTextures.length > 0) createMonitorField();
   });
+  
+  // keep your resize listener…
   window.addEventListener('resize', resize);
 
   const ui = document.createElement('div');
