@@ -309,6 +309,7 @@ if (
   
   // function CreateMonitorField() 
   function createMonitorField() {
+    console.log('▶ createMonitorField()', { modelReady, videosLoaded, vidTexturesLength: vidTextures.length });
     monitors.forEach(m=>scene.remove(m)); monitors.length=0;
     vidTextures.forEach((tex,i)=>{
       const m = monitorPrototype.clone(); m.visible=false;
