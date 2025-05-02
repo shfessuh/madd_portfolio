@@ -27,11 +27,6 @@ let rotationEnabled = false,
 let haloGroup;
 let isZooming = false;
 let isZoomedIn = false;
-let modelReady = false;
-function tryBuildMonitors() {
-  if (!modelReady || vidTextures.length === 0) return;
-  createMonitorField();
-}
 
 const manualOffsets = [
   // Top Line
@@ -181,48 +176,22 @@ function setup() {
   geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
   // video for monitors
-// video for monitors
-// 1) video‐for‐monitors setup
-// Modify your video loading code to be more robust
-for (let i = 1; i <= 15; i++) {
-  const v = document.createElement('video');
-  v.id = `v${i}`;
-  v.crossOrigin = 'anonymous';
-  v.muted = true;
-  v.loop = true;
-  v.playsInline = true;
-  v.preload = 'auto';
-  v.src = `./videos/video${i}.mp4`; // Use explicit paths
-  document.body.appendChild(v); // Make sure they're in DOM
-
-  v.addEventListener('loadeddata', () => {
-    v.play().catch(e => {
-      console.log(`Video ${i} play failed, waiting for interaction`, e);
-      const playHandler = () => {
-        v.play().then(() => {
-          document.removeEventListener('click', playHandler);
-        });
-      };
-      document.addEventListener('click', playHandler, { once: true });
-    });
-
+  for (let i = 1; i <= 15; i++) {
+    const v = document.getElementById('v' + i);
+    v.muted = v.loop = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    v.load();
+    v.play().catch(() => document.addEventListener('click', () => v.play(), { once: true }));
     const vt = new THREE.VideoTexture(v);
     vt.minFilter = vt.magFilter = THREE.LinearFilter;
-    vt.encoding = THREE.sRGBEncoding;
-    vt.flipY = false;
-
+    vt.encoding  = THREE.sRGBEncoding;
+    vt.flipY     = false;
+    vt.needsUpdate = true;
     vidTextures.push(vt);
-    console.log(`Video texture #${i} ready`);
-    tryBuildMonitors();
-  });
-
-  v.load();
-}
-
-// 2) GLTF loader for CRT_monitors
-new THREE.GLTFLoader().load(
-  'models/CRT_monitor.glb',
-  gltf => {
+  }
+  // monitors
+  new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
       const mat = new THREE.MeshBasicMaterial({
@@ -233,30 +202,18 @@ new THREE.GLTFLoader().load(
         opacity    : node.material.opacity
       });
       switch (node.name) {
-        case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
+        case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
         case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-        case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
-        case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
+        case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
+        case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
         default:            mat.color.set(0x140f10);
       }
       node.material = mat;
+      node.material.needsUpdate = true;
     });
-
     monitorPrototype = gltf.scene;
-    console.log('Monitor model successfully loaded');
-    modelReady = true;
-    console.log('GLTF model loaded');
-    tryBuildMonitors();
-  },
-  undefined,
-  err => console.error('CRT_monitor.glb failed to load:', err)
-);
-
-// 3) If any video textures arrived before the model, build monitors now
-if (vidTextures.length > 0) {
-  createMonitorField();
-}
-
+    createMonitorField();
+  });
   window.addEventListener('resize', resize);
 
   const ui = document.createElement('div');
@@ -303,61 +260,21 @@ if (vidTextures.length > 0) {
 
 // function CreateMonitorField() 
 function createMonitorField() {
-  // DEBUG: see when this fires and how many textures we have
-  console.log('▶ createMonitorField() called • modelReady=', modelReady, 'vidTextures=', vidTextures.length);
-
-  // remove any old monitors
-  monitors.forEach(m => scene.remove(m));
-  monitors.length = 0;
-
-  vidTextures.forEach((tex, i) => {
-    const m = monitorPrototype.clone();
-    m.visible = true;  // ensure the monitor is shown
-
-    // apply UVs + video texture
-    m.traverse(n => {
-      if (!n.isMesh || n.name !== 'Node-Mesh_2') return;
-      const g = n.geometry;
-      if (!g.attributes.uv) {
-        g.computeBoundingBox();
-        const bb = g.boundingBox, sz = new THREE.Vector3();
-        bb.getSize(sz);
-        const pos = g.attributes.position, uvs = [];
-        for (let j = 0; j < pos.count; j++) {
-          uvs.push(
-            (pos.getX(j) - bb.min.x) / sz.x,
-            (pos.getY(j) - bb.min.y) / sz.y
-          );
-        }
-        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  monitors.forEach(m=>scene.remove(m)); monitors.length=0;
+  vidTextures.forEach((tex,i)=>{
+    const m = monitorPrototype.clone(); m.visible=false;
+    m.traverse(n=>{
+      if(!n.isMesh||n.name!=='Node-Mesh_2') return;
+      const g=n.geometry;
+      if(!g.attributes.uv) {
+        g.computeBoundingBox(); const bb=g.boundingBox,sz=new THREE.Vector3(); bb.getSize(sz);
+        const pos=g.attributes.position,uvs=[];
+        for(let j=0;j<pos.count;j++){ uvs.push((pos.getX(j)-bb.min.x)/sz.x,(pos.getY(j)-bb.min.y)/sz.y); }
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
       }
-      n.material = new THREE.MeshBasicMaterial({
-        map: tex,
-        side: THREE.DoubleSide,
-        toneMapped: false
-      });
-      n.material.needsUpdate = true;
+      n.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false}); n.material.needsUpdate=true;
     });
-
-    // position & scale it immediately (same as your old zoom-gate)
-    const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
-    const base  = camera.position.clone().addScaledVector(fwd, 12);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-    const o     = manualOffsets[i] || { x: 0, y: 0 };
-
-    m.position.copy(base)
-     .addScaledVector(right, o.x)
-     .addScaledVector(up,    o.y);
-    m.quaternion.copy(camera.quaternion);
-    m.rotateY(Math.PI);
-    m.scale.set(18, 18, 18);
-
-    scene.add(m);
-    monitors.push(m);
-
-    // DEBUG: log each monitor’s position
-    console.log(`  → monitor #${i}`, m.position.toArray());
+    scene.add(m); monitors.push(m);
   });
 }
 
@@ -501,7 +418,7 @@ function animate() {
     } else if (age < EXP_DUR + FADE_DUR) {
       const t = (age - EXP_DUR) / FADE_DUR;
       L.obj.position.lerp(L.target, 0.01);
-      L.obj.element.style.opacity = `${1 - t}`;
+      L.obj.element.style.opacity = ${1 - t};
     } else {
       haloGroup.remove(L.obj);
       labels.splice(i, 1);
@@ -546,7 +463,7 @@ function animate() {
   renderer.render(scene, camera);
   cssRenderer.render(cssScene, camera);
 }
-
+  
 
 // function spawnWord(faceIdx)
 function spawnWord(faceIdx) {
@@ -625,4 +542,5 @@ function resize() {
 
 window.addEventListener('load',setup);
 window.addEventListener('resize',resize);
-//yay
+
+
