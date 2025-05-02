@@ -182,6 +182,7 @@ function setup() {
     v.crossOrigin = 'anonymous';
     v.muted        = true;
     v.loop         = true;
+    v.autoplay     = true;
     v.playsInline  = true;
     v.preload      = 'auto';
     v.load();
