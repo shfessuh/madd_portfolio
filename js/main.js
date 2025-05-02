@@ -78,12 +78,13 @@ if (
   const raycaster = new THREE.Raycaster();
   const mouse     = new THREE.Vector2();
   
-  function setup() {
+function setup() {
   const container = document.getElementById('container');
-  // ── Basic Three.js + CSS3D setup ──
+
+  // ── Scene & CSS3D renderer ──
   scene    = new THREE.Scene();
   cssScene = new THREE.Scene();
-  camera   = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0.2, 0, 8.5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -102,7 +103,7 @@ if (
   cssRenderer.domElement.style.pointerEvents = 'none';
   container.appendChild(cssRenderer.domElement);
 
-  // Trackball controls
+  // ── Controls ──
   controls = new THREE.TrackballControls(camera, renderer.domElement);
   controls.enableRotate         = false;
   controls.staticMoving         = false;
@@ -112,10 +113,10 @@ if (
   controls.maxDistance          = 90;
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
-  // Audio listener & background sound
+  // ── Audio ──
   listener = new THREE.AudioListener();
   camera.add(listener);
-  bgSound  = new THREE.Audio(listener);
+  bgSound = new THREE.Audio(listener);
   new THREE.AudioLoader().load('videos/sound.mp4', buf => {
     bgSound.setBuffer(buf);
     bgSound.setLoop(true);
@@ -123,7 +124,7 @@ if (
     audioLoaded = true;
   });
 
-  // Lights
+  // ── Lighting ──
   scene.add(new THREE.AmbientLight(0x0d0b0b));
   const spot = new THREE.SpotLight(0xffffff, 1.5);
   spot.position.set(5, 10, 5);
@@ -139,7 +140,7 @@ if (
   spot.shadow.camera.fov     = 30;
   scene.add(spot);
 
-  // Sphere + Ground
+  // ── Sphere & Ground ──
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(5, 32, 32),
     new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
@@ -157,19 +158,22 @@ if (
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Rotating cube with six image faces
+  // ── Rotating cube ──
   const imgs = ['image1.jpg','image2.jpg','image3.jpg','image4.jpg','image5.jpg','image6.jpg']
-    .map(name => 'Images/' + name);
-  const mats = imgs.map(src => new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(src) }));
-  const geo  = new THREE.BoxGeometry(1,1,1).toNonIndexed();
+    .map(n => 'Images/' + n);
+  const mats = imgs.map(src => new THREE.MeshBasicMaterial({
+    map: new THREE.TextureLoader().load(src)
+  }));
+  const geo = new THREE.BoxGeometry(1,1,1).toNonIndexed();
   cube = new THREE.Mesh(geo, mats);
   cube.position.set(0, -3, 0);
   cube.scale.set(1.8, 1.8, 1.8);
   scene.add(cube);
-  geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
+  geo.clearGroups();
+  for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
 
-  // Prepare to load model + videos in parallel
-  const modelPromise = new Promise((resolve, reject) => {
+  // ── Load model + videos in parallel ──
+  const modelPromise = new Promise((res, rej) => {
     new THREE.GLTFLoader().load(
       'models/CRT_monitor.glb',
       gltf => {
@@ -193,15 +197,51 @@ if (
         });
         monitorPrototype = gltf.scene;
         console.log('✅ CRT model loaded');
-        resolve();
+        res();
       },
       undefined,
       err => {
         console.error('❌ CRT_monitor.glb error', err);
-        reject(err);
+        rej(err);
       }
     );
   });
+
+  const videoPromises = Array.from({ length: 15 }, (_, i) => {
+    return new Promise(resolve => {
+      const v = document.getElementById(`v${i+1}`);
+      v.crossOrigin  = 'anonymous';
+      v.muted        = true;
+      v.loop         = true;
+      v.playsInline  = true;
+      v.preload      = 'auto';
+      v.load();
+      v.addEventListener('loadeddata', () => {
+        const vt = new THREE.VideoTexture(v);
+        vt.minFilter = vt.magFilter = THREE.LinearFilter;
+        vt.encoding  = THREE.sRGBEncoding;
+        vt.flipY     = false;
+        vidTextures[i] = vt;
+        console.log(`🎞️ v${i+1} ready`);
+        resolve();
+      }, { once: true });
+      v.play().catch(() => {
+        document.addEventListener('click', () => v.play(), { once: true });
+      });
+    });
+  });
+
+  Promise.all([ modelPromise, ...videoPromises ]).then(() => {
+    console.log('🚀 All assets ready—creating monitors');
+    createMonitorField();
+  }).catch(err => console.error(err));
+
+  // ── Final setup ──
+  window.addEventListener('resize', resize);
+  buildUI();   // your nav + pan/zoom buttons
+  animate();
+}
+
 
   const videoPromises = Array.from({length:15}, (_, i) => {
     return new Promise(resolve => {
