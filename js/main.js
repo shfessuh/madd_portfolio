@@ -26,7 +26,6 @@ if (
   let haloGroup;
   let isZooming = false;
   let isZoomedIn = false;
-  // top of your file, alongside your other globals:
   const vidTextures = new Array(15).fill(null);
   let modelReady   = false;
   let videosLoaded = 0;
@@ -61,7 +60,7 @@ if (
   const FADE_START        = 35;
   const FADE_END          = 45;
   const AUDIO_MIN_VOLUME = 0.01;
-  const AUDIO_MAX_VOLUME = 0.09;
+  const AUDIO_MAX_VOLUME = 0.07;
   
   function reverse(str) {
     return str.split('').reverse().join('');
@@ -177,12 +176,6 @@ if (
     cube.scale.set(1.8, 1.8, 1.8);
     scene.add(cube);
     geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
-  
-    // video for monitors
-
-
-
-// at the top of setup(), before loading the GLTF:
     const decodeStarts = new Array(15).fill(0);
     
     console.log("🔁 starting video‑for‑monitors loop");
@@ -190,7 +183,6 @@ if (
       const idx = i - 1;
       const v   = document.getElementById(`v${i}`);
       if (!v) {
-        console.warn(`❓ no <video id="v${i}"> in DOM`);
         continue;
       }
     
@@ -202,8 +194,6 @@ if (
       v.loop        = true;
       v.muted       = true;
       v.playsInline = true;
-    
-    // … inside your canplaythrough listener …
       v.addEventListener('canplaythrough', () => {
       const dt = (performance.now() - decodeStarts[idx]).toFixed(1);
       console.log(`🎞️ v${i} canplaythrough in ${dt} ms`);
@@ -218,8 +208,6 @@ if (
     
       videosLoaded++;
       console.log(`✅ v${i} ready (${videosLoaded}/15)`);
-    
-    // ⚡ PATCH ONLY THE i‑th MONITOR:
       const mon = monitors[idx];
       if (mon) {
         mon.traverse(n => {
@@ -231,9 +219,6 @@ if (
       }
     }, { once: true });
 
-
-
-
       v.load();
       v.play().catch(() => {
         console.warn(`⚠️ autoplay blocked for v${i}; will retry on click`);
@@ -244,7 +229,6 @@ if (
     new THREE.GLTFLoader().load(
       'models/CRT_monitor.glb',
       gltf => {
-        // re‑materialize the prototype (same as your current code)…
         gltf.scene.traverse(node => {
           if (!node.isMesh) return;
           const mat = new THREE.MeshBasicMaterial({
@@ -267,11 +251,11 @@ if (
     
         monitorPrototype = gltf.scene;
         modelReady = true;
-        console.log('✅ CRT model loaded — creating all monitors now');
+        console.log('CRT model loaded — creating all monitors now');
         createMonitorField();
       },
       undefined,
-      err => console.error('❌ CRT_monitor.glb failed to load:', err)
+      err => console.error('CRT_monitor.glb failed to load:', err)
     );
 
     window.addEventListener('resize', resize);
@@ -318,7 +302,6 @@ if (
   }
           
     function createMonitorField() {
-      // clear out old monitors
       monitors.forEach(m => scene.remove(m));
       monitors = [];
     
@@ -328,8 +311,6 @@ if (
     
         m.traverse(node => {
           if (!node.isMesh) return;
-    
-          // ── if this is the screen surface, ensure it has UVs ──
           if (node.name === 'Node-Mesh_2') {
             const geom = node.geometry;
             if (!geom.attributes.uv) {
@@ -349,8 +330,6 @@ if (
                 new THREE.Float32BufferAttribute(uvs, 2)
               );
             }
-    
-            // then assign the VideoTexture (or fallback color)
             const vt = vidTextures[i];
             const matOpts = {
               side:       THREE.DoubleSide,
@@ -365,12 +344,9 @@ if (
             node.material.needsUpdate = true;
     
           } else {
-            // non-screen parts: just clone the original material
             node.material = node.material.clone();
           }
         });
-    
-        // …rest of your positioning / scaling code remains exactly the same…
         const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
         const base  = camera.position.clone().addScaledVector(fwd, 12);
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
@@ -447,7 +423,6 @@ if (
     const speed = isZoomedIn ? 30 : 10;
     const delta = new THREE.Vector3();
   
-    // camera panning
     if (keyState["ArrowUp"])    delta.y += speed * dt;
     if (keyState["ArrowDown"])  delta.y -= speed * dt;
     if (keyState["ArrowLeft"])  delta.x -= speed * dt;
@@ -462,7 +437,7 @@ if (
     cube.rotation.y += 0.01;
     cube.rotation.z += 0.01;
   
-    // fly‐to logic
+
     if (flyToPos) {
       camera.position.lerp(flyToPos, 0.1);
       controls.target.lerp(flyTarget.position, 0.1);
@@ -473,8 +448,7 @@ if (
     }
   
     controls.update();
-  
-    // audio volume based on distance
+
     if (audioUnlocked && audioLoaded && monitors.length) {
       const d = Math.min(...monitors.map(m => camera.position.distanceTo(m.position)));
       if (d < PROXIMITY_RADIUS) {
@@ -491,7 +465,6 @@ if (
       }
     }
   
-    // background fade
     const f = THREE.MathUtils.clamp(
       (camera.position.z - FADE_START) / (FADE_END - FADE_START),
       0, 1
@@ -499,7 +472,6 @@ if (
     renderer.setClearColor(0x0a0a0a, 0);
     document.getElementById("gradient-bg").style.opacity = f.toFixed(2);
   
-    // inject monitors once zoomed past FADE_START
     if (!dreamInjected && camera.position.z > FADE_START) {
       const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
       const base  = camera.position.clone().addScaledVector(fwd, 12);
@@ -518,8 +490,6 @@ if (
       });
       dreamInjected = true;
     }
-  
-    // animate spawned words
     const now     = performance.now() * 0.001;
     const EXP_DUR = 1.5, FADE_DUR = 35.0;
     for (let i = labels.length - 1; i >= 0; i--) {
@@ -539,8 +509,6 @@ if (
     }
   
     if (isSpawning && labels.length === 0) isSpawning = false;
-  
-    // enable halo rotation after spawn delay
     const nowMs = performance.now();
     if (!rotationEnabled && nowMs > spawnTime + 1000) {
       rotationEnabled = true;
@@ -549,7 +517,6 @@ if (
       haloGroup.rotation.y -= dt * 0.5;
     }
   
-    // keep CSS3D labels facing camera
     const inv = haloGroup.quaternion.clone().invert();
     haloGroup.children.forEach(child => {
       child.quaternion.copy(inv).multiply(camera.quaternion);
@@ -572,7 +539,6 @@ if (
     });
 
   
-    // final render
     renderer.render(scene, camera);
     cssRenderer.render(cssScene, camera);
  }
