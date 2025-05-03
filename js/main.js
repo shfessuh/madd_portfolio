@@ -187,41 +187,50 @@ if (
 
 // … inside setup(), replacing your video‑for‑monitors loop …
 
+// …
+    console.log("🔁 starting video‑for‑monitors loop");
     for (let i = 1; i <= 15; i++) {
       const idx = i - 1;
       const v   = document.getElementById(`v${i}`);
-      if (!v) continue;
+      if (!v) {
+        console.warn(`❓ no <video id="v${i}"> in DOM`);
+        continue;
+      }
     
-      // record when we start the decode
+      console.log(`▶ setting up v${i}`, v.src || v.currentSrc);
       decodeStarts[idx] = performance.now();
     
-      v.crossOrigin  = 'anonymous';
-      v.preload      = 'auto';
-      v.loop         = true;
-      v.muted        = true;
-      v.playsInline  = true;
+      v.crossOrigin = 'anonymous';
+      v.preload     = 'auto';
+      v.loop        = true;
+      v.muted       = true;
+      v.playsInline = true;
     
-      v.addEventListener('loadeddata', () => {
-        const decodeEnd = performance.now();
-        const decodeTime = (decodeEnd - decodeStarts[idx]).toFixed(1);
-        console.log(`🎞️ v${i} decode time: ${decodeTime} ms`);
+      // catch fatal load errors
+      v.addEventListener('error', () => {
+        console.error(`❌ v${i} failed to load:`, v.error);
+      }, { once: true });
     
-        // build your VideoTexture as before
+      // try canplaythrough instead of loadeddata
+      v.addEventListener('canplaythrough', () => {
+        const dt = (performance.now() - decodeStarts[idx]).toFixed(1);
+        console.log(`🎞️ v${i} canplaythrough in ${dt} ms`);
+    
         const vt = new THREE.VideoTexture(v);
         vt.minFilter   = THREE.LinearFilter;
         vt.magFilter   = THREE.LinearFilter;
         vt.encoding    = THREE.sRGBEncoding;
         vt.flipY       = false;
         vt.needsUpdate = true;
-        vidTextures[idx] = vt;
     
+        vidTextures[idx] = vt;
         videosLoaded++;
         console.log(`✅ v${i} ready (${videosLoaded}/15)`);
     
-        // inject into existing monitors
+        // immediately patch any already‑drawn monitors
         monitors.forEach(mon => {
           mon.traverse(n => {
-            if (n.isMesh && n.name === 'Node-Mesh_2') {
+            if (n.isMesh && n.name === 'Node‑Mesh_2') {
               n.material.map = vt;
               n.material.needsUpdate = true;
             }
@@ -230,11 +239,11 @@ if (
       }, { once: true });
     
       v.load();
-      v.play().catch(() =>
-        document.addEventListener('click', () => v.play(), { once: true })
-      );
+      v.play().catch(() => {
+        console.warn(`⚠️ autoplay blocked for v${i}; will retry on click`);
+        document.addEventListener('click', () => v.play(), { once: true });
+      });
     }
-
 
           
     new THREE.GLTFLoader().load(
