@@ -203,39 +203,37 @@ if (
       v.muted       = true;
       v.playsInline = true;
     
-      // catch fatal load errors
-      v.addEventListener('error', () => {
-        console.error(`❌ v${i} failed to load:`, v.error);
-      }, { once: true });
-    
-      // wait until the browser has enough data to play through
+    // … inside your canplaythrough listener …
       v.addEventListener('canplaythrough', () => {
-        const dt = (performance.now() - decodeStarts[idx]).toFixed(1);
-        console.log(`🎞️ v${i} canplaythrough in ${dt} ms`);
+      const dt = (performance.now() - decodeStarts[idx]).toFixed(1);
+      console.log(`🎞️ v${i} canplaythrough in ${dt} ms`);
     
-        // build the texture
-        const vt = new THREE.VideoTexture(v);
-        vt.minFilter   = THREE.LinearFilter;
-        vt.magFilter   = THREE.LinearFilter;
-        vt.encoding    = THREE.sRGBEncoding;
-        vt.flipY       = false;
-        vt.needsUpdate = true;
-        vidTextures[idx] = vt;
+      const vt = new THREE.VideoTexture(v);
+      vt.minFilter   = THREE.LinearFilter;
+      vt.magFilter   = THREE.LinearFilter;
+      vt.encoding    = THREE.sRGBEncoding;
+      vt.flipY       = false;
+      vt.needsUpdate = true;
+      vidTextures[idx] = vt;
     
-        videosLoaded++;
-        console.log(`✅ v${i} ready (${videosLoaded}/15)`);
+      videosLoaded++;
+      console.log(`✅ v${i} ready (${videosLoaded}/15)`);
     
-        // patch any already‑added monitors
-        monitors.forEach(mon => {
-          mon.traverse(n => {
-            if (n.isMesh && n.name === 'Node-Mesh_2') {
-              n.material.map = vt;
-              n.material.needsUpdate = true;
-            }
-          });
+    // ⚡ PATCH ONLY THE i‑th MONITOR:
+      const mon = monitors[idx];
+      if (mon) {
+        mon.traverse(n => {
+          if (n.isMesh && n.name === 'Node-Mesh_2') {
+            n.material.map = vt;
+            n.material.needsUpdate = true;
+          }
         });
-      }, { once: true });
-    
+      }
+    }, { once: true });
+
+
+
+
       v.load();
       v.play().catch(() => {
         console.warn(`⚠️ autoplay blocked for v${i}; will retry on click`);
