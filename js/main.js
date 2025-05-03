@@ -26,7 +26,7 @@ if (
   let haloGroup;
   let isZooming = false;
   let isZoomedIn = false;
-  const vidTextures = new Array(15).fill(null);
+  const vidTextures = new Array(14).fill(null);
   let modelReady   = false;
   let videosLoaded = 0;
 
@@ -39,11 +39,10 @@ if (
     { x:  50, y: 25, z: 5 },
   
     // Middle Line
-    { x: -50, y: 0, z: 10 },
-    { x: -25, y: -5, z: 0 },
-    { x:   0, y: 0, z: -10 },
-    { x:  25, y: -5, z: -5 },
-    { x:  50, y: 0, z: 10 },
+    { x: -37.5, y:   0, z:  10 }, 
+    { x: -12.5, y:  -5, z:   0 }, 
+    { x:  12.5, y:  -5, z:  -5 }, 
+    { x:  37.5, y:   0, z:  10 },
   
     // Bottom Line
     { x: -50, y: -25, z: -5 },
@@ -176,10 +175,10 @@ if (
     cube.scale.set(1.8, 1.8, 1.8);
     scene.add(cube);
     geo.clearGroups(); for (let i = 0; i < 6; i++) geo.addGroup(i * 6, 6, i);
-    const decodeStarts = new Array(15).fill(0);
+    const decodeStarts = new Array(14).fill(0);
     
     console.log("🔁 starting video‑for‑monitors loop");
-    for (let i = 1; i <= 15; i++) {
+    for (let i = 1; i <= 14; i++) {
       const idx = i - 1;
       const v   = document.getElementById(`v${i}`);
       if (!v) {
@@ -207,7 +206,7 @@ if (
       vidTextures[idx] = vt;
     
       videosLoaded++;
-      console.log(`✅ v${i} ready (${videosLoaded}/15)`);
+      console.log(`✅ v${i} ready (${videosLoaded}/14)`);
       const mon = monitors[idx];
       if (mon) {
         mon.traverse(n => {
@@ -364,8 +363,6 @@ if (
       });
     }
 
-
-
   // function onPointerDown()
   function onPointerDown(evt) {
     if (isSpawning) return;
@@ -373,9 +370,27 @@ if (
     mouse.x = ((evt.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((evt.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
+    const hitC = raycaster.intersectObject(cube, true);
+    if (hitC.length) {
+      let idx = 0, v0 = hitC[0].faceIndex * 3;
+      for (const g of cube.geometry.groups) {
+        if (v0 >= g.start && v0 < g.start + g.count) {
+          idx = g.materialIndex;
+          break;
+        }
+      }
+      haloGroup.rotation.y = 0;
+      rotationEnabled      = false;
+      spawnTime            = performance.now();
+      isSpawning           = true;
+      setTimeout(() => spawnWord(idx), 600);
+      return;
+    }
   
+    // 3) then check monitors
     const hitM = raycaster.intersectObjects(monitors, true);
     if (hitM.length) {
+      // only monitors click fires your audio + zoom
       listener.context.resume().then(() => {
         audioUnlocked = true;
         if (audioLoaded && !bgSound.isPlaying) bgSound.play();
@@ -384,39 +399,26 @@ if (
       let m = hitM[0].object;
       while (!monitors.includes(m)) m = m.parent;
       flyTarget = m;
-      const fwd = new THREE.Vector3().copy(m.getWorldDirection(new THREE.Vector3())).negate();
+  
+      const fwd = new THREE.Vector3()
+                    .copy(m.getWorldDirection(new THREE.Vector3()))
+                    .negate();
       flyToPos = m.getWorldPosition(new THREE.Vector3())
-                 .add(fwd.multiplyScalar(16))
-                 .add(new THREE.Vector3(0,4,1));
+                   .add(fwd.multiplyScalar(16))
+                   .add(new THREE.Vector3(0, 4, 1));
   
       isZooming  = true;
       isZoomedIn = false;
       return;
     }
-  
+
     if (isZoomedIn) {
       flyToPos   = null;
       isZooming  = false;
       isZoomedIn = false;
-      return;
     }
-    const hitC = raycaster.intersectObject(cube);
-    if (!hitC.length) return;
-  
-    let idx = 0, v0 = hitC[0].faceIndex * 3;
-    for (const g of cube.geometry.groups) {
-      if (v0 >= g.start && v0 < g.start + g.count) {
-        idx = g.materialIndex;
-        break;
-      }
-    }
-  
-    haloGroup.rotation.y = 0;
-    rotationEnabled      = false;
-    spawnTime            = performance.now();
-    isSpawning           = true;
-    setTimeout(() => spawnWord(idx), 600);
   }
+
   // function animate()
   function animate() {
     requestAnimationFrame(animate);
@@ -619,3 +621,4 @@ if (
   
   window.addEventListener('load',setup);
   window.addEventListener('resize',resize);
+
