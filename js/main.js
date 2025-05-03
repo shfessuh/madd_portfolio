@@ -414,6 +414,7 @@ if (
     haloGroup.rotation.y = 0;
     rotationEnabled      = false;
     spawnTime            = performance.now();
+    isSpawning           = true;
     setTimeout(() => spawnWord(idx), 600);
   }
   // function animate()
@@ -543,15 +544,11 @@ if (
     cssRenderer.render(cssScene, camera);
  }
 
-    
-  
   // function spawnWord(faceIdx)
   function spawnWord(faceIdx) {
-    if (isSpawning) return;
-    isSpawning = true;
-  
     const msg = faceMessages[faceIdx] || "";
     if (!msg) return;
+
     //attempting to reverse the letters
     const orig      = reverse(msg);                    
     const origChars = orig.split("");
