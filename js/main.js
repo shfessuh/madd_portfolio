@@ -557,7 +557,7 @@ if (
     // final render
     renderer.render(scene, camera);
     cssRenderer.render(cssScene, camera);
-  }
+ }
 
     
   
