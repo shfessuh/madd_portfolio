@@ -183,7 +183,7 @@ if (
 
 
 // at the top of your file, alongside vidTextures / videosLoaded:
-const decodeStarts = new Array(15).fill(0);
+    const decodeStarts = new Array(15).fill(0);
 
 // … inside setup(), replacing your video‑for‑monitors loop …
 
