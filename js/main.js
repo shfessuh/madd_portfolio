@@ -318,9 +318,9 @@ if (
   
     animate();
   }
-      
+          
     function createMonitorField() {
-      // clear old monitors
+      // clear out old monitors
       monitors.forEach(m => scene.remove(m));
       monitors = [];
     
@@ -331,8 +331,28 @@ if (
         m.traverse(node => {
           if (!node.isMesh) return;
     
+          // ── if this is the screen surface, ensure it has UVs ──
           if (node.name === 'Node-Mesh_2') {
-            // use video texture if ready, otherwise fallback to prototype color
+            const geom = node.geometry;
+            if (!geom.attributes.uv) {
+              geom.computeBoundingBox();
+              const bb = geom.boundingBox, sz = new THREE.Vector3();
+              bb.getSize(sz);
+              const pos = geom.attributes.position;
+              const uvs = [];
+              for (let j = 0; j < pos.count; j++) {
+                uvs.push(
+                  (pos.getX(j) - bb.min.x) / sz.x,
+                  (pos.getY(j) - bb.min.y) / sz.y
+                );
+              }
+              geom.setAttribute(
+                'uv',
+                new THREE.Float32BufferAttribute(uvs, 2)
+              );
+            }
+    
+            // then assign the VideoTexture (or fallback color)
             const vt = vidTextures[i];
             const matOpts = {
               side:       THREE.DoubleSide,
@@ -347,12 +367,12 @@ if (
             node.material.needsUpdate = true;
     
           } else {
-            // other parts: just clone the prototype material
+            // non-screen parts: just clone the original material
             node.material = node.material.clone();
           }
         });
     
-        // position & scale exactly as before
+        // …rest of your positioning / scaling code remains exactly the same…
         const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
         const base  = camera.position.clone().addScaledVector(fwd, 12);
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
@@ -369,6 +389,7 @@ if (
         monitors.push(m);
       });
     }
+
 
 
   // function onPointerDown()
