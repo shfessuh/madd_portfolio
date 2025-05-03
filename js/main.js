@@ -545,12 +545,8 @@ if (
       }
     });
 
-vidTextures.forEach((tex, i) => {
-      // skip empty entries
-    if (!tex) return;
-  
-    // ── NEW: update video textures only when the video has data ──
     vidTextures.forEach((tex, i) => {
+      if (!tex) return;
       const vid = document.getElementById(`v${i+1}`);
       if (vid && vid.readyState >= vid.HAVE_CURRENT_DATA) {
         tex.needsUpdate = true;
@@ -562,6 +558,7 @@ vidTextures.forEach((tex, i) => {
     renderer.render(scene, camera);
     cssRenderer.render(cssScene, camera);
   }
+
     
   
   // function spawnWord(faceIdx)
