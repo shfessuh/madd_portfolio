@@ -323,7 +323,7 @@ if (
   }
   
     function createMonitorField() {
-      // clear out old monitors
+      // remove old monitors
       monitors.forEach(m => scene.remove(m));
       monitors = [];
     
@@ -331,37 +331,40 @@ if (
         const m = monitorPrototype.clone();
         m.visible = true;
     
-        m.traverse(n => {
-          if (!n.isMesh) return;
+        m.traverse(node => {
+          if (!node.isMesh) return;
     
-          // screen mesh? use the video texture if ready, otherwise keep the
-          // prototype’s dark color
-          if (n.name === 'Node-Mesh_2') {
+          if (node.name === 'Node-Mesh_2') {
+            // screen surface: either the video texture or fallback to the original dark color
             const vt = vidTextures[i];
-            n.material = new THREE.MeshBasicMaterial({
-              map        : vt || null,
-              side       : THREE.DoubleSide,
-              toneMapped : false,
-              // if no vt yet, color will be the dark 0x191a1f from prototype
-              color      : vt ? undefined : n.material.color
-            });
-            n.material.needsUpdate = true;
+            const matOpts = {
+              side:       THREE.DoubleSide,
+              toneMapped: false
+            };
+            if (vt) {
+              matOpts.map = vt;
+            } else {
+              // use the prototype's material color (dark grey) if texture isn't ready
+              matOpts.color = node.material.color.clone();
+            }
+            node.material = new THREE.MeshBasicMaterial(matOpts);
+            node.material.needsUpdate = true;
+    
           } else {
-            // everything else: keep the prototype material
-            n.material = n.material.clone();
+            // other parts: clone the prototype material
+            node.material = node.material.clone();
           }
         });
     
-        // position & scale exactly as before:
+        // position & scale exactly as before
         const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
         const base  = camera.position.clone().addScaledVector(fwd, 12);
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
         const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-        const o     = offset;
     
         m.position.copy(base)
-         .addScaledVector(right, o.x)
-         .addScaledVector(up,    o.y);
+         .addScaledVector(right, offset.x)
+         .addScaledVector(up,    offset.y);
         m.quaternion.copy(camera.quaternion);
         m.rotateY(Math.PI);
         m.scale.set(18, 18, 18);
@@ -371,7 +374,6 @@ if (
       });
     }
 
-  
   // function onPointerDown()
   function onPointerDown(evt) {
     if (isSpawning) return;
