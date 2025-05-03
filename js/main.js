@@ -324,7 +324,7 @@ if (
     
       manualOffsets.forEach((offset, i) => {
         const m = monitorPrototype.clone();
-        m.visible = true;
+        m.visible = false;
     
         m.traverse(node => {
           if (!node.isMesh) return;
