@@ -26,7 +26,6 @@ if (
   let haloGroup;
   let isZooming = false;
   let isZoomedIn = false;
-  let videosLoaded = 0;
   // top of your file, alongside your other globals:
   const vidTextures = new Array(15).fill(null);
   let modelReady   = false;
