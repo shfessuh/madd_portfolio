@@ -30,7 +30,6 @@ if (
   const vidTextures = new Array(15).fill(null);
   let modelReady   = false;
   let videosLoaded = 0;
-  let monitors     = [];
 
   const manualOffsets = [
     // Top Line
