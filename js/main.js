@@ -29,7 +29,12 @@ if (
   let isZoomedIn = false;
   let modelReady   = false;
   let videosLoaded = 0;
-  
+  // top of your file, alongside your other globals:
+  const vidTextures = new Array(15).fill(null);
+  let modelReady   = false;
+  let videosLoaded = 0;
+  let monitors     = [];
+
   const manualOffsets = [
     // Top Line
     { x: -50, y: 25, z: 0 },
@@ -182,49 +187,80 @@ if (
 
 
     for (let i = 1; i <= 15; i++) {
-      const v = document.getElementById('v' + i);
+      const idx = i - 1;
+      const v   = document.getElementById(`v${i}`);
+      if (!v) continue;
+    
       v.crossOrigin  = 'anonymous';
-      v.preload = 'auto';
-      v.autoplay     = true;
-      v.muted = v.loop = true;
-      v.playsInline = true;
-     
+      v.preload      = 'auto';
+      v.loop         = true;
+      v.muted        = true;
+      v.playsInline  = true;
+    
+      // as soon as the browser has decoded at least one frame:
+      v.addEventListener('loadeddata', () => {
+        const vt = new THREE.VideoTexture(v);
+        vt.minFilter   = THREE.LinearFilter;
+        vt.magFilter   = THREE.LinearFilter;
+        vt.encoding    = THREE.sRGBEncoding;
+        vt.flipY       = false;
+        vt.needsUpdate = true;
+        vidTextures[idx] = vt;
+    
+        videosLoaded++;
+        console.log(`✅ v${i} ready (${videosLoaded}/15)`);
+    
+        // inject into existing monitors if they’re already built
+        monitors.forEach(mon => {
+          mon.traverse(n => {
+            if (n.isMesh && n.name === 'Node-Mesh_2') {
+              n.material.map = vt;
+              n.material.needsUpdate = true;
+            }
+          });
+        });
+      }, { once: true });
+    
       v.load();
-      v.play().catch(() => {
-        document.addEventListener('click', () => v.play(), { once: true });
-      });
-      const vt = new THREE.VideoTexture(v);
-      vt.minFilter = vt.magFilter = THREE.LinearFilter;
-      vt.encoding  = THREE.sRGBEncoding;
-      vt.flipY     = false;
-      vt.needsUpdate = true;
-      vidTextures.push(vt);
+      v.play().catch(() =>
+        document.addEventListener('click', () => v.play(), { once: true })
+      );
     }
 
-      
-    new THREE.GLTFLoader().load('models/CRT_monitor.glb', gltf => {
-      gltf.scene.traverse(node => {
-        if (!node.isMesh) return;
-        const mat = new THREE.MeshBasicMaterial({
-          map        : node.material.map || null,
-          side       : THREE.DoubleSide,
-          toneMapped : false,
-          transparent: node.material.transparent,
-          opacity    : node.material.opacity
+          
+    new THREE.GLTFLoader().load(
+      'models/CRT_monitor.glb',
+      gltf => {
+        // re‑materialize the prototype (same as your current code)…
+        gltf.scene.traverse(node => {
+          if (!node.isMesh) return;
+          const mat = new THREE.MeshBasicMaterial({
+            map        : node.material.map || null,
+            side       : THREE.DoubleSide,
+            toneMapped : false,
+            transparent: node.material.transparent,
+            opacity    : node.material.opacity
+          });
+          switch (node.name) {
+            case 'Node-Mesh_2': mat.color.set(0x191a1f); break;
+            case 'Node-Mesh':   mat.color.set(0xa4de31); break;
+            case 'Node-Mesh_1': mat.color.set(0x1a1213); break;
+            case 'Node-Mesh_3': mat.color.set(0x2e2728); break;
+            default:            mat.color.set(0x140f10);
+          }
+          node.material = mat;
+          node.material.needsUpdate = true;
         });
-        switch (node.name) {
-          case 'Node-Mesh_2': mat.color.set(0x191a1f); break; //cant see
-          case 'Node-Mesh':   mat.color.set(0xa4de31); break;
-          case 'Node-Mesh_1': mat.color.set(0x1a1213); break; //side 
-          case 'Node-Mesh_3': mat.color.set(0x2e2728); break; // buttons
-          default:            mat.color.set(0x140f10);
-        }
-        node.material = mat;
-        node.material.needsUpdate = true;
-      });
-      monitorPrototype = gltf.scene;
-      createMonitorField();
-    });
+    
+        monitorPrototype = gltf.scene;
+        modelReady = true;
+        console.log('✅ CRT model loaded — creating all monitors now');
+        createMonitorField();
+      },
+      undefined,
+      err => console.error('❌ CRT_monitor.glb failed to load:', err)
+    );
+
     window.addEventListener('resize', resize);
     const ui = document.createElement('div');
     ui.style.position = 'absolute';
@@ -268,26 +304,55 @@ if (
     animate();
   }
   
-  // function CreateMonitorField() 
-  function createMonitorField() {
-    console.log('▶ createMonitorField()', { modelReady, videosLoaded, vidTexturesLength: vidTextures.length });
-    monitors.forEach(m=>scene.remove(m)); monitors.length=0;
-    vidTextures.forEach((tex,i)=>{
-      const m = monitorPrototype.clone(); m.visible=false;
-      m.traverse(n=>{
-        if(!n.isMesh||n.name!=='Node-Mesh_2') return;
-        const g=n.geometry;
-        if(!g.attributes.uv) {
-          g.computeBoundingBox(); const bb=g.boundingBox,sz=new THREE.Vector3(); bb.getSize(sz);
-          const pos=g.attributes.position,uvs=[];
-          for(let j=0;j<pos.count;j++){ uvs.push((pos.getX(j)-bb.min.x)/sz.x,(pos.getY(j)-bb.min.y)/sz.y); }
-          g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
-        }
-        n.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false}); n.material.needsUpdate=true;
+    function createMonitorField() {
+      // clear out old monitors
+      monitors.forEach(m => scene.remove(m));
+      monitors = [];
+    
+      manualOffsets.forEach((offset, i) => {
+        const m = monitorPrototype.clone();
+        m.visible = true;
+    
+        m.traverse(n => {
+          if (!n.isMesh) return;
+    
+          // screen mesh? use the video texture if ready, otherwise keep the
+          // prototype’s dark color
+          if (n.name === 'Node-Mesh_2') {
+            const vt = vidTextures[i];
+            n.material = new THREE.MeshBasicMaterial({
+              map        : vt || null,
+              side       : THREE.DoubleSide,
+              toneMapped : false,
+              // if no vt yet, color will be the dark 0x191a1f from prototype
+              color      : vt ? undefined : n.material.color
+            });
+            n.material.needsUpdate = true;
+          } else {
+            // everything else: keep the prototype material
+            n.material = n.material.clone();
+          }
+        });
+    
+        // position & scale exactly as before:
+        const fwd   = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+        const base  = camera.position.clone().addScaledVector(fwd, 12);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const up    = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        const o     = offset;
+    
+        m.position.copy(base)
+         .addScaledVector(right, o.x)
+         .addScaledVector(up,    o.y);
+        m.quaternion.copy(camera.quaternion);
+        m.rotateY(Math.PI);
+        m.scale.set(18, 18, 18);
+    
+        scene.add(m);
+        monitors.push(m);
       });
-      scene.add(m); monitors.push(m);
-    });
-  }
+    }
+
   
   // function onPointerDown()
   function onPointerDown(evt) {
