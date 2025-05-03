@@ -544,6 +544,10 @@ if (
         el.style.transform = `matrix3d(${vals.join(",")})`;
       }
     });
+
+vidTextures.forEach((tex, i) => {
+      // skip empty entries
+    if (!tex) return;
   
     // ── NEW: update video textures only when the video has data ──
     vidTextures.forEach((tex, i) => {
@@ -552,6 +556,7 @@ if (
         tex.needsUpdate = true;
       }
     });
+
   
     // final render
     renderer.render(scene, camera);
