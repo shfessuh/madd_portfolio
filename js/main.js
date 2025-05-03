@@ -182,10 +182,18 @@ if (
 
 
 
+// at the top of your file, alongside vidTextures / videosLoaded:
+const decodeStarts = new Array(15).fill(0);
+
+// … inside setup(), replacing your video‑for‑monitors loop …
+
     for (let i = 1; i <= 15; i++) {
       const idx = i - 1;
       const v   = document.getElementById(`v${i}`);
       if (!v) continue;
+    
+      // record when we start the decode
+      decodeStarts[idx] = performance.now();
     
       v.crossOrigin  = 'anonymous';
       v.preload      = 'auto';
@@ -193,8 +201,12 @@ if (
       v.muted        = true;
       v.playsInline  = true;
     
-      // as soon as the browser has decoded at least one frame:
       v.addEventListener('loadeddata', () => {
+        const decodeEnd = performance.now();
+        const decodeTime = (decodeEnd - decodeStarts[idx]).toFixed(1);
+        console.log(`🎞️ v${i} decode time: ${decodeTime} ms`);
+    
+        // build your VideoTexture as before
         const vt = new THREE.VideoTexture(v);
         vt.minFilter   = THREE.LinearFilter;
         vt.magFilter   = THREE.LinearFilter;
@@ -206,7 +218,7 @@ if (
         videosLoaded++;
         console.log(`✅ v${i} ready (${videosLoaded}/15)`);
     
-        // inject into existing monitors if they’re already built
+        // inject into existing monitors
         monitors.forEach(mon => {
           mon.traverse(n => {
             if (n.isMesh && n.name === 'Node-Mesh_2') {
@@ -222,6 +234,7 @@ if (
         document.addEventListener('click', () => v.play(), { once: true })
       );
     }
+
 
           
     new THREE.GLTFLoader().load(
