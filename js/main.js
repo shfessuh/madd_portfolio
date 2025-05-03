@@ -182,12 +182,9 @@ if (
 
 
 
-// at the top of your file, alongside vidTextures / videosLoaded:
+// at the top of setup(), before loading the GLTF:
     const decodeStarts = new Array(15).fill(0);
-
-// … inside setup(), replacing your video‑for‑monitors loop …
-
-// …
+    
     console.log("🔁 starting video‑for‑monitors loop");
     for (let i = 1; i <= 15; i++) {
       const idx = i - 1;
@@ -211,26 +208,27 @@ if (
         console.error(`❌ v${i} failed to load:`, v.error);
       }, { once: true });
     
-      // try canplaythrough instead of loadeddata
+      // wait until the browser has enough data to play through
       v.addEventListener('canplaythrough', () => {
         const dt = (performance.now() - decodeStarts[idx]).toFixed(1);
         console.log(`🎞️ v${i} canplaythrough in ${dt} ms`);
     
+        // build the texture
         const vt = new THREE.VideoTexture(v);
         vt.minFilter   = THREE.LinearFilter;
         vt.magFilter   = THREE.LinearFilter;
         vt.encoding    = THREE.sRGBEncoding;
         vt.flipY       = false;
         vt.needsUpdate = true;
-    
         vidTextures[idx] = vt;
+    
         videosLoaded++;
         console.log(`✅ v${i} ready (${videosLoaded}/15)`);
     
-        // immediately patch any already‑drawn monitors
+        // patch any already‑added monitors
         monitors.forEach(mon => {
           mon.traverse(n => {
-            if (n.isMesh && n.name === 'Node‑Mesh_2') {
+            if (n.isMesh && n.name === 'Node-Mesh_2') {
               n.material.map = vt;
               n.material.needsUpdate = true;
             }
@@ -244,8 +242,7 @@ if (
         document.addEventListener('click', () => v.play(), { once: true });
       });
     }
-
-          
+        
     new THREE.GLTFLoader().load(
       'models/CRT_monitor.glb',
       gltf => {
@@ -321,9 +318,9 @@ if (
   
     animate();
   }
-  
+      
     function createMonitorField() {
-      // remove old monitors
+      // clear old monitors
       monitors.forEach(m => scene.remove(m));
       monitors = [];
     
@@ -335,7 +332,7 @@ if (
           if (!node.isMesh) return;
     
           if (node.name === 'Node-Mesh_2') {
-            // screen surface: either the video texture or fallback to the original dark color
+            // use video texture if ready, otherwise fallback to prototype color
             const vt = vidTextures[i];
             const matOpts = {
               side:       THREE.DoubleSide,
@@ -344,14 +341,13 @@ if (
             if (vt) {
               matOpts.map = vt;
             } else {
-              // use the prototype's material color (dark grey) if texture isn't ready
               matOpts.color = node.material.color.clone();
             }
             node.material = new THREE.MeshBasicMaterial(matOpts);
             node.material.needsUpdate = true;
     
           } else {
-            // other parts: clone the prototype material
+            // other parts: just clone the prototype material
             node.material = node.material.clone();
           }
         });
@@ -373,6 +369,7 @@ if (
         monitors.push(m);
       });
     }
+
 
   // function onPointerDown()
   function onPointerDown(evt) {
