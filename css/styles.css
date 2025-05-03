@@ -79,7 +79,7 @@ canvas {
   position: absolute;
   font-family: 'AmharicLetters', sans-serif;
   color: #fff;
-  font-size: 0.3rem;
+  font-size: 0.5rem;
   pointer-events: none;
   user-select: none;
   z-index: 201;
