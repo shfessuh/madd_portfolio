@@ -19,7 +19,6 @@ if (
   let controls, cube;
   let monitorPrototype, monitors = [], dreamInjected = false;
   let flyToPos = null, flyTarget = null;
-  const vidTextures = [];
   let listener, bgSound, audioUnlocked = false, audioLoaded = false;
   let isSpawning = false;
   let rotationEnabled = false,
